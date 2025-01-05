@@ -1,0 +1,42 @@
+name: Performance Alerts
+
+on:
+  workflow_run:
+    workflows: ["Performance Tests"]
+    types:
+      - completed
+
+jobs:
+  alert:
+    name: Check and Send Alerts
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    
+    steps:
+      - name: Download Test Results
+        uses: actions/download-artifact@v3
+        with:
+          name: performance-test-results
+          path: test_results
+      
+      - name: Check for Degradation
+        id: check
+        run: |
+          DEGRADATION=$(grep "Degrading" test_results/analysis_report.txt || echo "")
+          if [ ! -z "$DEGRADATION" ]; then
+            echo "degradation=true" >> $GITHUB_OUTPUT
+            echo "details<<EOF" >> $GITHUB_OUTPUT
+            echo "$DEGRADATION" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Send Alert
+        if: steps.check.outputs.degradation == 'true'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "⚠️ Performance Degradation Detected!\n```\n${{ steps.check.outputs.details }}\n```\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 

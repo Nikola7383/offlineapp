@@ -1,0 +1,8 @@
+name: secret_master_app
+description: Secret Master Control Application
+version: 1.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Specifične zavisnosti za Secret Master 

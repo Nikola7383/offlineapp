@@ -1,0 +1,123 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  performance_test:
+    name: Run Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Full history for historical analysis
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Setup Performance Test Environment
+        run: |
+          mkdir -p test_results
+          echo "PERFORMANCE_TEST_ENV=ci" >> $GITHUB_ENV
+          echo "::group::Environment Info"
+          flutter doctor -v
+          echo "::endgroup::"
+      
+      - name: Run Performance Tests
+        run: |
+          echo "::group::Performance Tests"
+          dart bin/performance_test_runner.dart --verbose
+          echo "::endgroup::"
+      
+      - name: Analyze Results
+        run: |
+          echo "::group::Performance Analysis"
+          dart bin/performance_analyzer_cli.dart --verbose --historical
+          echo "::endgroup::"
+      
+      - name: Check Performance Regression
+        run: |
+          echo "::group::Regression Check"
+          DEGRADATION=$(grep "Degrading" test_results/analysis_report.txt || echo "")
+          if [ ! -z "$DEGRADATION" ]; then
+            echo "::warning::Performance degradation detected:"
+            echo "$DEGRADATION"
+          fi
+          echo "::endgroup::"
+      
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-test-results
+          path: |
+            test_results/
+            test_results/performance_report.json
+            test_results/analysis_report.txt
+      
+      - name: Create Performance Report Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('test_results/analysis_report.txt', 'utf8');
+            const summary = report.split('\n').slice(0, 20).join('\n'); // First 20 lines
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: `## Performance Test Results\n\`\`\`\n${summary}\n\`\`\`\n[Full Report](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`
+            });
+
+  performance_monitoring:
+    name: Monitor Performance Trends
+    needs: performance_test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'  # Only run on scheduled events
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download Previous Results
+        uses: actions/download-artifact@v3
+        with:
+          name: performance-test-results
+          path: test_results
+      
+      - name: Generate Trend Report
+        run: |
+          dart bin/performance_analyzer_cli.dart --historical --json > trend_report.json
+      
+      - name: Update Performance Dashboard
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const trend = JSON.parse(fs.readFileSync('trend_report.json', 'utf8'));
+            
+            // Update repository wiki page with trends
+            const wikiContent = `# Performance Trends\n\nLast updated: ${new Date().toISOString()}\n\n`;
+            
+            await github.rest.repos.createOrUpdatePageContent({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              path: 'Performance-Trends.md',
+              message: 'Update performance trends',
+              content: Buffer.from(wikiContent).toString('base64'),
+              sha: context.sha
+            }); 

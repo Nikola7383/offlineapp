@@ -1,0 +1,8 @@
+name: master_admin_app
+description: Master Admin Control Application
+version: 1.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Specifične zavisnosti za Master Admin 

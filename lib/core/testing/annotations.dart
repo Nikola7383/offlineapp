@@ -1,0 +1,3 @@
+class isTest {
+  const isTest();
+}
