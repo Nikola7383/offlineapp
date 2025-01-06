@@ -39,16 +39,20 @@ class LoggerService {
     _logger.d(message, error, stackTrace);
   }
 
-  void info(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.i(message, error, stackTrace);
+  void info(String message, [Map<String, dynamic>? details]) {
+    // Implementation
   }
 
-  void warning(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.w(message, error, stackTrace);
+  void warning(String message, [Map<String, dynamic>? details]) {
+    // Implementation
   }
 
-  void error(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.e(message, error, stackTrace);
+  void error(String message, [Map<String, dynamic>? details]) {
+    // Implementation
+  }
+
+  void emergency(String message, [Map<String, dynamic>? details]) {
+    // Implementation
   }
 }
 

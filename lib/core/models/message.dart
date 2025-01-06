@@ -6,23 +6,21 @@ import 'package:uuid/uuid.dart';
 class Message {
   final String id;
   final String content;
-  final List<MessageAttachment> attachments;
-  final DateTime timestamp;
   final String senderId;
+  final Priority priority;
+  final DateTime timestamp;
+  final List<String> attachments;
 
   const Message({
     required this.id,
     required this.content,
-    this.attachments = const [],
-    required this.timestamp,
     required this.senderId,
-  });
+    this.priority = Priority.medium,
+    DateTime? timestamp,
+    this.attachments = const [],
+  }) : timestamp = timestamp ?? DateTime.now();
 
   bool get hasAttachments => attachments.isNotEmpty;
-
-  int getTotalAttachmentSize() {
-    return attachments.fold<int>(0, (sum, attachment) => sum + attachment.size);
-  }
 }
 
 class MessageAttachment {

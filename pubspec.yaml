@@ -1,16 +1,41 @@
 name: secure_event_app
-description: "A new Flutter project."
+description: Secure offline-first event communication app
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.3 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
+  
+  # Core
+  get_it: ^7.6.0
+  provider: ^6.0.5
+  
+  # Storage
+  shared_preferences: ^2.2.1
+  sqflite: ^2.3.0
+  
+  # Utils
+  uuid: ^3.0.7
+  logger: ^2.0.1
+  path_provider: ^2.1.1
+  
+  # Encryption
+  encrypt: ^5.0.1
+  crypto: ^3.0.3
+  
+  # Network
+  nearby_connections: ^3.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^2.0.3
+  mockito: ^5.4.2
+  build_runner: ^2.4.6
+
+flutter:
+  uses-material-design: true
