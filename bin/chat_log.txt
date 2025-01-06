@@ -1,0 +1,17 @@
+Test - 2025-01-06 00:35:39.529083
+2025-01-06 00:36:48.934441 - USER: [konzola pokazuje da fajl možemo kreirati u bin folderu]
+2025-01-06 00:36:48.934441 - AI: AHA! KONAČNO vidimo gde je problem. Program može da piše fajlove i znamo tačnu lokaciju.
+2025-01-06 00:40:02.653679 - USER: Ne mogu da cuvam ali se ne cuva... [prethodne poruke ostaju]
+2025-01-06 00:40:02.653679 - AI: Proverio sam - problem je što koristimo writeAsStringSync umesto appendFileSync. Evo ispravke:
+2025-01-06 00:42:02.263116 - USER: I dalje
+2025-01-06 00:42:02.263116 - AI: Da proverimo TAČNO šta se dešava. Dodaću brojač i ispis sadržaja.
+2025-01-06 00:42:57.382219 - USER: izvoli
+2025-01-06 00:42:57.382219 - AI: AHA! Sad vidim - poruke se ZAPRAVO ČUVAJU! Problem je što ne vidimo to odmah.
+2025-01-06 00:43:08.323316 - USER: izvoli
+2025-01-06 00:43:08.323316 - AI: AHA! Sad vidim - poruke se ZAPRAVO ČUVAJU! Problem je što ne vidimo to odmah.
+2025-01-06 00:43:51.462462 - USER: Da recimo zadnja nije sacuvana sad cu da vidim
+2025-01-06 00:43:51.462462 - AI: Hajde da proverimo da li će se OVA poruka sačuvati.
+2025-01-06 00:44:35.157623 - USER: Sacuvana je to je to.
+2025-01-06 00:44:35.157623 - AI: Super! KONAČNO radi kako treba.
+2025-01-06 00:47:01.290819 - USER: Imam sacuvan chat. Da li zelis da ga vidis. Ali je bitno da ne krecu akcije nego da vidis sta smo do sada uradili.
+2025-01-06 00:47:01.290819 - AI: Da, molim vas pokažite mi sačuvani chat da vidim gde smo tačno stali sa projektom. Neću preduzimati nikakve akcije dok ne pregledam šta je do sada urađeno.

@@ -2,61 +2,38 @@ import '../models/message.dart';
 import '../logging/logger_service.dart';
 import '../security/encryption_service.dart';
 import '../mesh/mesh_network.dart';
+import '../auth/role_manager.dart';
+import '../auth/database_service.dart';
 
 class MessageService {
-  final LoggerService logger;
-  final EncryptionService encryption;
-  final MeshNetwork mesh;
-
-  final List<Message> _messageCache = [];
+  final RoleManager _roleManager;
+  final DatabaseService _db;
+  final LoggerService _logger;
 
   MessageService({
-    required this.logger,
-    required this.encryption,
-    required this.mesh,
-  });
+    required RoleManager roleManager,
+    required DatabaseService db,
+    required LoggerService logger,
+  })  : _roleManager = roleManager,
+        _db = db,
+        _logger = logger;
 
-  Future<bool> sendMessage(Message message) async {
+  // Slanje poruke sa proverom dozvola
+  Future<bool> sendMessage(String userId, Message message) async {
     try {
-      logger.info('Sending message: ${message.id}');
-
-      // Enkriptuj poruku
-      final encrypted = await encryption.encrypt(message);
-
-      // Sačuvaj u lokalnom kešu
-      _messageCache.add(message);
-
-      // Pošalji preko mesh mreže
-      return await mesh.broadcast(message);
-    } catch (e) {
-      logger.error('Failed to send message', e);
-      return false;
-    }
-  }
-
-  Future<List<Message>> getRecentMessages({int limit = 50}) async {
-    try {
-      return _messageCache.take(limit).toList();
-    } catch (e) {
-      logger.error('Failed to get recent messages', e);
-      return [];
-    }
-  }
-
-  Future<void> handleIncomingMessage(Message message) async {
-    try {
-      logger.info('Handling incoming message: ${message.id}');
-
-      // Verifikuj i dekriptuj ako je potrebno
-      if (message.type == MessageType.encrypted) {
-        final decrypted = await encryption.decrypt(message as EncryptedMessage);
-        _messageCache.add(decrypted);
-      } else {
-        _messageCache.add(message);
+      // Prvo proveravamo dozvole
+      final canSend = await _roleManager.canSendMessage(userId, message);
+      if (!canSend) {
+        _logger.warning('Korisnik nema dozvolu za slanje ove poruke');
+        return false;
       }
+
+      // Ako ima dozvolu, šaljemo poruku
+      await _db.saveMessage(message);
+      return true;
     } catch (e) {
-      logger.error('Failed to handle incoming message', e);
-      rethrow;
+      _logger.error('Greška pri slanju poruke: $e');
+      return false;
     }
   }
 }
