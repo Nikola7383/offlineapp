@@ -1,0 +1,1 @@
+// Ovo bi trebalo da pokaže gde sistem puca pod opterećenjem 

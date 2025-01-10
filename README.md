@@ -1,21 +1,73 @@
-<<<<<<< HEAD
-# secure_event_app
+# Secure Event App
 
-A new Flutter project.
+Aplikacija za sigurno upravljanje događajima sa distribuiranom mesh arhitekturom.
 
-## Getting Started
+## Pregled
 
-This project is a starting point for a Flutter application.
+Secure Event App je Flutter aplikacija dizajnirana za sigurno i efikasno upravljanje događajima u distribuiranom okruženju. Aplikacija koristi mesh arhitekturu za poboljšanu skalabilnost i otpornost.
 
-A few resources to get you started if this is your first Flutter project:
+## Ključne Funkcionalnosti
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Distribuirano upravljanje procesima
+- Mesh networking sa load balancing-om
+- Sigurna komunikacija između čvorova
+- Robusno praćenje stanja i statistika
+- Recovery mehanizmi za slučaj otkaza
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-=======
-# offlineapp
-Moj app za Android
->>>>>>> c09861c0fed7a6cc307cf77b43355fa48a0a2c8e
+## Arhitektura
+
+Aplikacija je organizovana u sledeće glavne module:
+
+- **Core** - osnovne funkcionalnosti i servisi
+- **Mesh** - implementacija mesh networking-a
+- **Process** - upravljanje procesima
+- **Security** - sigurnosni mehanizmi
+- **Stats** - prikupljanje i analiza statistika
+
+Detaljnija dokumentacija dostupna je u sledećim fajlovima:
+- [Arhitektura](./docs/ARCHITECTURE.md)
+- [API Dokumentacija](./docs/API.md)
+- [Mesh Implementacija](./docs/MESH.md)
+- [Sigurnost](./docs/SECURITY.md)
+- [Testiranje](./docs/TESTING.md)
+
+## Razvoj
+
+### Preduslovi
+
+- Flutter SDK 3.0+
+- Dart 3.0+
+- Android Studio / VS Code sa Flutter/Dart pluginovima
+
+### Pokretanje
+
+1. Klonirajte repozitorijum
+```bash
+git clone https://github.com/your-username/secure_event_app.git
+```
+
+2. Instalirajte zavisnosti
+```bash
+flutter pub get
+```
+
+3. Pokrenite aplikaciju
+```bash
+flutter run
+```
+
+### Testiranje
+
+Za pokretanje testova:
+```bash
+flutter test
+```
+
+Za pokretanje integration testova:
+```bash
+flutter test integration_test
+```
+
+## Licenca
+
+MIT License - pogledajte [LICENSE](LICENSE) fajl za detalje.

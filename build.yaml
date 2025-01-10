@@ -1,27 +1,14 @@
 targets:
   $default:
     builders:
-      mockito|mockBuilder:
-        enabled: true
+      freezed:
         generate_for:
           include:
-            - test/**_test.dart
-            - test/test_helper.dart
-          exclude:
-            - test/**/*.mocks.dart
+            - lib/models/**/*.dart
+      json_serializable:
+        generate_for:
+          include:
+            - lib/models/**/*.dart
         options:
-          # Mockito builder opcije
-          build_extensions:
-            '^test/{{}}.dart': 'test/{{}}.mocks.dart'
-          source_gen:
-            options:
-              any_map: true
-              checked: true
-              field_rename: snake
-              generic_argument_factories: true 
-          generate_for:
-            include:
-              - test/**_test.dart
-              - test/test_helper.dart
-          build_extensions:
-            '^test/{{}}.dart': 'test/{{}}.mocks.dart' 
+          explicit_to_json: true
+          include_if_null: false 

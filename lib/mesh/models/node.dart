@@ -1,73 +1,70 @@
 import 'protocol.dart';
 import 'protocol_manager.dart';
 
+/// Tipovi čvorova u mreži
+enum NodeType {
+  /// Standardni čvor koji može da prosleđuje poruke
+  regular,
+
+  /// Super čvor sa većim kapacitetom i mogućnostima
+  superNode,
+
+  /// Edge čvor koji služi kao gateway
+  edge,
+
+  /// Relay čvor koji samo prosleđuje poruke
+  relay,
+}
+
+/// Model koji predstavlja čvor u mesh mreži
 class Node {
   final String id;
-  double batteryLevel;
-  double signalStrength;
-  final Map<Protocol, ProtocolManager> managers;
+  final bool isActive;
+  final double batteryLevel;
+  final NodeType type;
+  final Map<String, dynamic> capabilities;
 
-  Node(
-    this.id, {
+  const Node({
+    required this.id,
+    required this.isActive,
     required this.batteryLevel,
-    required this.signalStrength,
-    required this.managers,
+    required this.type,
+    this.capabilities = const {},
   });
+
+  /// Kreira kopiju čvora sa ažuriranim vrednostima
+  Node copyWith({
+    bool? isActive,
+    double? batteryLevel,
+    NodeType? type,
+    Map<String, dynamic>? capabilities,
+  }) {
+    return Node(
+      id: id,
+      isActive: isActive ?? this.isActive,
+      batteryLevel: batteryLevel ?? this.batteryLevel,
+      type: type ?? this.type,
+      capabilities: capabilities ?? Map.from(this.capabilities),
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Node && runtimeType == other.runtimeType && id == other.id;
+      other is Node &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          isActive == other.isActive &&
+          batteryLevel == other.batteryLevel &&
+          type == other.type;
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode =>
+      id.hashCode ^ isActive.hashCode ^ batteryLevel.hashCode ^ type.hashCode;
 
   @override
-  String toString() =>
-      'Node(id: $id, battery: $batteryLevel, signal: $signalStrength)';
-
-  Future<List<Node>> getNeighbors() async {
-    List<Node> neighbors = [];
-
-    for (var entry in managers.entries) {
-      try {
-        final protocol = entry.key;
-        final manager = entry.value;
-        final protocolNeighbors = await manager.scanForDevices();
-
-        for (var neighbor in protocolNeighbors) {
-          connections[neighbor.id] = NodeConnection(
-            protocol: protocol,
-            strength: neighbor.signalStrength,
-            lastSeen: DateTime.now(),
-          );
-        }
-
-        neighbors.addAll(protocolNeighbors);
-      } catch (e) {
-        print('Discovery failed for protocol ${entry.key}: $e');
-      }
-    }
-
-    return neighbors;
-  }
-
-  List<NodeConnection> getActiveConnections() {
-    final now = DateTime.now();
-    return connections.values
-        .where((conn) => now.difference(conn.lastSeen) < Duration(minutes: 1))
-        .toList();
-  }
-
-  Future<void> updateConnectionStrength(String nodeId, double strength) async {
-    final existing = connections[nodeId];
-    if (existing != null) {
-      connections[nodeId] = NodeConnection(
-        protocol: existing.protocol,
-        strength: strength,
-        lastSeen: DateTime.now(),
-      );
-    }
+  String toString() {
+    return 'Node(id: $id, isActive: $isActive, batteryLevel: $batteryLevel, type: $type)';
   }
 }
 

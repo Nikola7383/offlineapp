@@ -1,28 +1,48 @@
 class Message {
   final String id;
   final String content;
-  final String sender;
+  final String senderId;
   final DateTime timestamp;
-  bool read;
-  bool synced;
+  final bool encrypted;
+  final String? signature;
+  final String? encryptedKey;
 
   Message({
     required this.id,
     required this.content,
-    required this.sender,
+    required this.senderId,
     required this.timestamp,
-    this.read = false,
-    this.synced = true,
+    this.encrypted = false,
+    this.signature,
+    this.encryptedKey,
   });
+
+  Message copyWith({
+    String? content,
+    bool? encrypted,
+    String? signature,
+    String? encryptedKey,
+  }) {
+    return Message(
+      id: id,
+      content: content ?? this.content,
+      senderId: senderId,
+      timestamp: timestamp,
+      encrypted: encrypted ?? this.encrypted,
+      signature: signature ?? this.signature,
+      encryptedKey: encryptedKey ?? this.encryptedKey,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'content': content,
-      'sender': sender,
+      'senderId': senderId,
       'timestamp': timestamp.millisecondsSinceEpoch,
-      'read': read ? 1 : 0,
-      'synced': synced ? 1 : 0,
+      'encrypted': encrypted,
+      'signature': signature,
+      'encryptedKey': encryptedKey,
     };
   }
 
@@ -30,19 +50,11 @@ class Message {
     return Message(
       id: map['id'],
       content: map['content'],
-      sender: map['sender'],
+      senderId: map['senderId'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
-      read: map['read'] == 1,
-      synced: map['synced'] == 1,
-    );
-  }
-
-  factory Message.fromJson(Map<String, dynamic> json) {
-    return Message(
-      id: json['id'],
-      content: json['content'],
-      sender: json['sender'],
-      timestamp: DateTime.parse(json['timestamp']),
+      encrypted: map['encrypted'] ?? false,
+      signature: map['signature'],
+      encryptedKey: map['encryptedKey'],
     );
   }
 }

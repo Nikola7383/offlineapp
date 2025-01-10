@@ -1,34 +1,29 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 
-class MyApp extends StatelessWidget {
-  final LoggerService logger;
-  final DatabaseService db;
-  final MeshNetwork mesh;
-  final EncryptionService encryption;
-
-  const MyApp({
-    super.key,
-    required this.logger,
-    required this.db,
-    required this.mesh,
-    required this.encryption,
-  });
+class App extends StatelessWidget {
+  const App({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Glasnik',
+      title: 'Secure Event App',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: HomeScreen(
-        db: db,
-        mesh: mesh,
-        encryption: encryption,
-        logger: logger,
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
       ),
+      themeMode: ThemeMode.system,
+      home: const HomeScreen(),
     );
   }
 }

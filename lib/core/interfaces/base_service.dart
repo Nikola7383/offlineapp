@@ -1,35 +1,25 @@
-/// Osnovni interfejs koji definišu svi servisi
-abstract class IService {
-  /// Status servisa
-  bool get isInitialized;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-  /// Inicijalizuje servis
+abstract class BaseService {
   Future<void> initialize();
-
-  /// Cleanup resursa
   Future<void> dispose();
 }
 
-abstract class BaseService implements IService {
-  bool _isInitialized = false;
-
-  @override
-  bool get isInitialized => _isInitialized;
-
-  @override
-  Future<void> initialize() async {
-    if (_isInitialized) return;
-    await onInitialize();
-    _isInitialized = true;
-  }
-
-  @override
-  Future<void> dispose() async {
-    if (!_isInitialized) return;
-    await onDispose();
-    _isInitialized = false;
-  }
-
-  Future<void> onInitialize() async {}
-  Future<void> onDispose() async {}
+abstract class BaseAsyncService extends BaseService {
+  Future<void> reconnect();
+  Future<void> pause();
+  Future<void> resume();
 }
+
+abstract class BaseSecureService extends BaseService {
+  Future<void> lock();
+  Future<void> unlock();
+  bool get isLocked;
+}
+
+abstract class BaseStateService extends BaseService {
+  Stream<ServiceState> get stateStream;
+  ServiceState get currentState;
+}
+
+enum ServiceState { initial, initializing, ready, error, disposed }

@@ -11,4 +11,15 @@ class SystemMonitor {
     // Implementacija
     return SystemHealth();
   }
+
+  Future<MonitoringStatus> checkMonitoringStatus() async {
+    try {
+      final status = await getMonitoringStatus();
+      print('Monitoring status: $status');
+      return status;
+    } catch (e) {
+      print('Monitoring system error: $e');
+      return MonitoringStatus.error;
+    }
+  }
 }
