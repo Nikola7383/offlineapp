@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class CacheMetrics extends InjectableService {
   final CacheManager _cache;

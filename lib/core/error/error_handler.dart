@@ -1,63 +1,49 @@
-import 'dart:async';
-import '../services/logger_service.dart';
 import 'package:injectable/injectable.dart';
+import 'error_observer.dart';
+import 'error_listener.dart';
+import 'errors/network_error.dart';
+import 'errors/database_error.dart';
+import 'exceptions/network_exception.dart';
+import 'exceptions/database_exception.dart';
 
 @injectable
-class ErrorHandler extends InjectableService {
-  final Map<Type, ErrorStrategy> _strategies = {};
-  final _errorSubject = BehaviorSubject<AppError>();
+class ErrorHandler {
+  final ErrorObserver _observer;
 
-  Stream<AppError> get errorStream => _errorSubject.stream;
+  ErrorHandler(this._observer);
 
-  ErrorHandler(LoggerService logger) : super(logger) {
-    _registerDefaultStrategies();
-  }
-
-  void registerStrategy<T extends Exception>(ErrorStrategy<T> strategy) {
-    _strategies[T] = strategy;
-  }
-
-  Future<T> handleError<T>(
-    Future<T> Function() operation, {
-    bool shouldRethrow = false,
-  }) async {
+  Future<void> handleError(Future<void> Function() operation) async {
     try {
-      return await operation();
-    } catch (error, stackTrace) {
-      final strategy = _findStrategy(error);
-      final appError = await strategy.handle(error, stackTrace);
-
-      _errorSubject.add(appError);
-      logger.error(
-        appError.message,
-        error,
-        stackTrace,
-        extras: appError.context,
+      await operation();
+    } on NetworkException catch (e, stack) {
+      final error = NetworkError(
+        message: e.message,
+        statusCode: e.statusCode,
+        endpoint: e.endpoint,
+        originalError: e,
+        stackTrace: stack,
       );
-
-      if (shouldRethrow) {
-        throw appError;
-      }
-
-      return strategy.fallback as T;
+      _observer.notifyError(error);
+      rethrow;
+    } on DatabaseException catch (e, stack) {
+      final error = DatabaseError(
+        message: e.message,
+        operation: e.operation,
+        table: e.table,
+        originalError: e,
+        stackTrace: stack,
+      );
+      _observer.notifyError(error);
+      rethrow;
+    } catch (e, stack) {
+      final error = AppError(
+        code: 'UNKNOWN_ERROR',
+        message: e.toString(),
+        originalError: e,
+        stackTrace: stack,
+      );
+      _observer.notifyError(error);
+      rethrow;
     }
-  }
-
-  ErrorStrategy _findStrategy(dynamic error) {
-    return _strategies[error.runtimeType] ?? _strategies[Exception]!;
-  }
-
-  void _registerDefaultStrategies() {
-    registerStrategy(NetworkErrorStrategy());
-    registerStrategy(DatabaseErrorStrategy());
-    registerStrategy(SecurityErrorStrategy());
-    registerStrategy(ValidationErrorStrategy());
-    registerStrategy(DefaultErrorStrategy());
-  }
-
-  @override
-  Future<void> dispose() async {
-    await _errorSubject.close();
-    await super.dispose();
   }
 }

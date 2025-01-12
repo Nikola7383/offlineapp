@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class MigrationManager extends InjectableService {
   final DatabaseService _db;

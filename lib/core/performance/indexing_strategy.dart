@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class IndexManager extends InjectableService {
   final DatabaseService _db;
@@ -39,7 +41,8 @@ class IndexManager extends InjectableService {
 
   Future<void> _createIndex(Index index) async {
     final db = await _db.database;
-    await db.execute('''
+    await db.execute(
+        '''
       CREATE ${index.unique ? 'UNIQUE' : ''} INDEX IF NOT EXISTS 
       ${index.name} ON ${index.table} 
       (${index.columns.join(', ')})

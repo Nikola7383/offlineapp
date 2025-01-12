@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:injectable/injectable.dart';
 import '../models/security_event.dart';
 import '../../mesh/models/node.dart';
 import '../encryption/encryption_service.dart';
+import '../../core/interfaces/base_service.dart';
+import '../../core/interfaces/logger_service_interface.dart';
 
-/// Upravlja sistemom zamki za otkrivanje i sprečavanje sabotaže
-class SabotageTrapsManager {
+@singleton
+class SabotageTrapsManager implements IService {
   final EncryptionService _encryptionService;
+  final ILoggerService _logger;
   final _trapController = StreamController<TrapEvent>.broadcast();
 
   // Aktivne zamke u sistemu
@@ -20,11 +24,45 @@ class SabotageTrapsManager {
   static const int MAX_ACTIVE_TRAPS = 50;
   static const Duration TRAP_REFRESH_INTERVAL = Duration(hours: 1);
 
+  bool _isInitialized = false;
+
+  SabotageTrapsManager(
+    this._encryptionService,
+    this._logger,
+  );
+
+  @override
+  bool get isInitialized => _isInitialized;
+
   Stream<TrapEvent> get trapStream => _trapController.stream;
 
-  SabotageTrapsManager._({
-    required EncryptionService encryptionService,
-  }) : _encryptionService = encryptionService;
+  @override
+  Future<void> initialize() async {
+    if (_isInitialized) {
+      _logger.warning('SabotageTrapsManager already initialized');
+      return;
+    }
+
+    _logger.info('Initializing SabotageTrapsManager');
+    // TODO: Implement initialization
+    _isInitialized = true;
+    _logger.info('SabotageTrapsManager initialized');
+  }
+
+  @override
+  Future<void> dispose() async {
+    if (!_isInitialized) {
+      _logger.warning('SabotageTrapsManager not initialized');
+      return;
+    }
+
+    _logger.info('Disposing SabotageTrapsManager');
+    await _trapController.close();
+    _activeTraps.clear();
+    _trapHistory.clear();
+    _isInitialized = false;
+    _logger.info('SabotageTrapsManager disposed');
+  }
 
   /// Kreira novu instancu SabotageTrapsManager-a
   static Future<SabotageTrapsManager> create({
@@ -177,11 +215,6 @@ class SabotageTrapsManager {
       stats[event.trapId] = (stats[event.trapId] ?? 0) + 1;
     }
     return stats;
-  }
-
-  /// Čisti resurse
-  void dispose() {
-    _trapController.close();
   }
 }
 

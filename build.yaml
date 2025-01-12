@@ -1,14 +1,51 @@
 targets:
   $default:
     builders:
-      freezed:
+      injectable_generator|injectable_builder:
+        enabled: true
         generate_for:
-          include:
-            - lib/models/**/*.dart
-      json_serializable:
+          - lib/**.dart
+        options:
+          auto_register: true
+          class_name_pattern: "Service$|Repository$|Manager$"
+          file_name_pattern: "_service|_repository|_manager"
+            
+      injectable_generator|injectable_config_builder:
+        enabled: true
         generate_for:
-          include:
-            - lib/models/**/*.dart
+          - lib/core/di/injectable_config.dart
+          
+      mockito|mockBuilder:
+        enabled: true
+        generate_for:
+          - test/**_test.dart
+          - test/mocks/**.dart
+        options:
+          generate_for:
+            include:
+              - test/**_test.dart
+              - test/mocks/**.dart
+            exclude:
+              - test/generated/**
+          build_extensions:
+            .dart: .mocks.dart
+          generate_missing_stubs: true
+          generate_super_calls: true
+          
+      json_serializable|json_serializable:
+        enabled: true
         options:
           explicit_to_json: true
-          include_if_null: false 
+          include_if_null: false
+          
+      freezed|freezed:
+        enabled: true
+        generate_for:
+          - lib/**.dart
+        options:
+          copy_with: true
+          
+      riverpod_generator|riverpod_generator:
+        enabled: true
+        generate_for:
+          - lib/providers/**.dart 

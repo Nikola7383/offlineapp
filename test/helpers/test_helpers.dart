@@ -1,16 +1,10 @@
+import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
-import 'package:secure_event_app/core/interfaces/logger_service.dart';
-import 'package:secure_event_app/core/interfaces/mesh_service.dart';
-import 'package:secure_event_app/core/interfaces/storage_service.dart';
-import 'package:secure_event_app/core/interfaces/database_service.dart';
-import 'package:secure_event_app/core/models/message.dart';
+import 'package:secure_event_app/core/services/logger_service.dart';
+import 'package:secure_event_app/core/services/database_service.dart';
 
 @GenerateMocks([
-  ILoggerService,
-  IMeshService,
-  IStorageService,
-  IDatabaseService,
-], customMocks: [
-  MockSpec<Message>(as: #MockMessage),
+  LoggerService,
+  DatabaseService,
 ])
 void main() {}

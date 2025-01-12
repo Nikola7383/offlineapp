@@ -1,100 +1,117 @@
-import 'package:test/test.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
-import '../../lib/mesh/models/node.dart';
-import '../../lib/mesh/models/protocol_manager.dart';
-
-// Generisanje mock klasa
-@GenerateMocks([ProtocolManager])
-import 'node_test.mocks.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:secure_event_app/mesh/models/node.dart';
+import '../../test_helper.dart';
+import '../../test_helper.mocks.dart';
 
 void main() {
-  late Node node;
-  late MockProtocolManager bluetoothManager;
-  late MockProtocolManager wifiDirectManager;
-  late MockProtocolManager soundManager;
+  group('Node', () {
+    late MockIMessageService messageService;
 
-  setUp(() {
-    bluetoothManager = MockProtocolManager();
-    wifiDirectManager = MockProtocolManager();
-    soundManager = MockProtocolManager();
-
-    node = Node(
-      'test_node',
-      batteryLevel: 1.0,
-      signalStrength: 1.0,
-      managers: {
-        Protocol.bluetooth: bluetoothManager,
-        Protocol.wifiDirect: wifiDirectManager,
-        Protocol.sound: soundManager,
-      },
-    );
-  });
-
-  group('Node Offline Discovery Tests', () {
-    test('Should discover neighbors across all protocols', () async {
-      // Arrange
-      final mockBluetoothNeighbor =
-          Node('bt_neighbor', batteryLevel: 0.8, signalStrength: 0.7);
-      final mockWifiNeighbor =
-          Node('wifi_neighbor', batteryLevel: 0.9, signalStrength: 0.8);
-
-      when(bluetoothManager.scanForDevices())
-          .thenAnswer((_) async => [mockBluetoothNeighbor]);
-      when(wifiDirectManager.scanForDevices())
-          .thenAnswer((_) async => [mockWifiNeighbor]);
-      when(soundManager.scanForDevices()).thenAnswer((_) async => []);
-
-      // Act
-      final neighbors = await node.getNeighbors();
-
-      // Assert
-      expect(neighbors, contains(mockBluetoothNeighbor));
-      expect(neighbors, contains(mockWifiNeighbor));
-      expect(neighbors.length, equals(2));
-
-      verify(bluetoothManager.scanForDevices()).called(1);
-      verify(wifiDirectManager.scanForDevices()).called(1);
-      verify(soundManager.scanForDevices()).called(1);
+    setUp(() {
+      messageService = MockIMessageService();
     });
 
-    test('Should handle failed protocols gracefully', () async {
-      // Arrange
-      when(bluetoothManager.scanForDevices())
-          .thenThrow(Exception('Bluetooth failed'));
-      when(wifiDirectManager.scanForDevices()).thenAnswer((_) async => []);
-      when(soundManager.scanForDevices()).thenAnswer((_) async => []);
+    test('should create node with valid data', () {
+      final node = Node(
+        id: 'test_node',
+        address: '192.168.1.1',
+        port: 8080,
+        isActive: true,
+        batteryLevel: 0.8,
+        type: NodeType.standard,
+        lastSeen: DateTime.now(),
+        status: NodeStatus.active,
+      );
 
-      // Act & Assert
-      expect(() => node.getNeighbors(), returnsNormally);
+      expect(node.id, equals('test_node'));
+      expect(node.address, equals('192.168.1.1'));
+      expect(node.port, equals(8080));
+      expect(node.isActive, isTrue);
+      expect(node.batteryLevel, equals(0.8));
+      expect(node.type, equals(NodeType.standard));
+      expect(node.status, equals(NodeStatus.active));
     });
 
-    test('Should update connection strength correctly', () async {
-      // Arrange
-      final nodeId = 'test_connection';
-      final strength = 0.8;
+    test('should update last seen time', () {
+      final initialTime = DateTime.now();
+      final node = Node(
+        id: 'test_node',
+        address: '192.168.1.1',
+        port: 8080,
+        isActive: true,
+        batteryLevel: 0.8,
+        type: NodeType.standard,
+        lastSeen: initialTime,
+        status: NodeStatus.active,
+      );
 
-      // Act
-      await node.updateConnectionStrength(nodeId, strength);
+      final newTime = DateTime.now().add(const Duration(minutes: 5));
+      node.updateLastSeen(newTime);
 
-      // Assert
-      expect(node.connections[nodeId]?.strength, equals(strength));
-      expect(node.connections[nodeId]?.isActive, isTrue);
+      expect(node.lastSeen, equals(newTime));
     });
 
-    test('Should clean up inactive connections', () async {
-      // Arrange
-      final nodeId = 'old_connection';
-      await node.updateConnectionStrength(nodeId, 0.8);
+    test('should update status', () {
+      final node = Node(
+        id: 'test_node',
+        address: '192.168.1.1',
+        port: 8080,
+        isActive: true,
+        batteryLevel: 0.8,
+        type: NodeType.standard,
+        lastSeen: DateTime.now(),
+        status: NodeStatus.active,
+      );
 
-      // Simulate time passing
-      await Future.delayed(Duration(milliseconds: 100));
+      node.updateStatus(NodeStatus.inactive);
 
-      // Act
-      final activeConnections = node.getActiveConnections();
+      expect(node.status, equals(NodeStatus.inactive));
+    });
 
-      // Assert
-      expect(activeConnections, isEmpty);
+    test('should calculate time since last seen', () {
+      final lastSeen = DateTime.now().subtract(const Duration(minutes: 5));
+      final node = Node(
+        id: 'test_node',
+        address: '192.168.1.1',
+        port: 8080,
+        isActive: true,
+        batteryLevel: 0.8,
+        type: NodeType.standard,
+        lastSeen: lastSeen,
+        status: NodeStatus.active,
+      );
+
+      final timeSinceLastSeen = node.getTimeSinceLastSeen();
+
+      expect(timeSinceLastSeen.inMinutes, greaterThanOrEqualTo(4));
+      expect(timeSinceLastSeen.inMinutes, lessThanOrEqualTo(6));
+    });
+
+    test('should be equal when ids match', () {
+      final node1 = Node(
+        id: 'test_node',
+        address: '192.168.1.1',
+        port: 8080,
+        isActive: true,
+        batteryLevel: 0.8,
+        type: NodeType.standard,
+        lastSeen: DateTime.now(),
+        status: NodeStatus.active,
+      );
+
+      final node2 = Node(
+        id: 'test_node',
+        address: '192.168.1.2',
+        port: 8081,
+        isActive: false,
+        batteryLevel: 0.5,
+        type: NodeType.relay,
+        lastSeen: DateTime.now(),
+        status: NodeStatus.inactive,
+      );
+
+      expect(node1, equals(node2));
+      expect(node1.hashCode, equals(node2.hashCode));
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class TransactionSafetyManager extends InjectableService {
   final Map<String, Set<String>> _resourceLocks = {};

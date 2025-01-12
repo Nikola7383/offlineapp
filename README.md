@@ -13,6 +13,7 @@ Secure Event App je Flutter aplikacija dizajnirana za sigurno i efikasno upravlj
 - Sigurna komunikacija između čvorova
 - Robusno praćenje stanja i statistika
 - Recovery mehanizmi za slučaj otkaza
+- Role-based pristup i kontrola
 
 ## Arhitektura
 
@@ -30,6 +31,7 @@ Detaljnija dokumentacija dostupna je u sledećim fajlovima:
 - [Mesh Implementacija](./docs/MESH.md)
 - [Sigurnost](./docs/SECURITY.md)
 - [Testiranje](./docs/TESTING.md)
+- [Role-Based Scenariji](./docs/ROLE_SCENARIOS.md)
 
 ## Razvoj
 

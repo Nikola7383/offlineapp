@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class SecureSessionService extends InjectableService {
   final EncryptionService _encryption;

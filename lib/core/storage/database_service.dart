@@ -1,43 +1,67 @@
+import 'package:injectable/injectable.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import '../interfaces/logger_service.dart';
+import '../models/database_config.dart';
 import '../models/message.dart';
-import '../logging/logger_service.dart';
 
-abstract class DatabaseService {
+abstract class IDatabaseService {
   Future<void> initialize();
-  Future<List<Message>> getMessages({required int limit, required int offset});
+  Future<List<Message>> getMessages();
   Future<void> saveMessage(Message message);
-  Future<void> deleteMessage(String messageId);
+  Future<void> deleteMessage(String id);
+  Future<void> close();
 }
 
-class DatabaseServiceImpl implements DatabaseService {
-  final LoggerService _logger;
-  
-  DatabaseServiceImpl({
-    required LoggerService logger,
-  }) : _logger = logger;
+@injectable
+class DatabaseService implements IDatabaseService {
+  final ILoggerService _logger;
+  final DatabaseConfig _config;
+  late Database _db;
+
+  DatabaseService(
+    this._logger,
+    this._config,
+  );
 
   @override
   Future<void> initialize() async {
     try {
-      // Inicijalizacija baze
-      await _logger.info('Database initialized');
+      _logger.info('Initializing database...');
+
+      final path = '${_config.path}/${_config.name}';
+      _db = await openDatabase(
+        path,
+        version: _config.version,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE messages (
+              id TEXT PRIMARY KEY,
+              content TEXT NOT NULL,
+              sender_id TEXT NOT NULL,
+              timestamp INTEGER NOT NULL,
+              status TEXT NOT NULL,
+              encrypted_key TEXT,
+              signature TEXT,
+              is_urgent INTEGER NOT NULL
+            )
+          ''');
+        },
+      );
+
+      _logger.info('Database initialized successfully');
     } catch (e) {
-      await _logger.error('Failed to initialize database', e);
+      _logger.error('Failed to initialize database: $e');
       rethrow;
     }
   }
 
   @override
-  Future<List<Message>> getMessages({
-    required int limit,
-    required int offset,
-  }) async {
+  Future<List<Message>> getMessages() async {
     try {
-      // Implementacija će doći kasnije
-      return [];
+      final List<Map<String, dynamic>> maps = await _db.query('messages');
+      return List.generate(maps.length, (i) => Message.fromMap(maps[i]));
     } catch (e) {
-      await _logger.error('Failed to get messages', e);
+      _logger.error('Failed to get messages: $e');
       rethrow;
     }
   }
@@ -45,44 +69,41 @@ class DatabaseServiceImpl implements DatabaseService {
   @override
   Future<void> saveMessage(Message message) async {
     try {
-      // Implementacija će doći kasnije
-      await _logger.info('Message saved: ${message.id}');
+      await _db.insert(
+        'messages',
+        message.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      _logger.info('Message saved successfully: ${message.id}');
     } catch (e) {
-      await _logger.error('Failed to save message', e);
+      _logger.error('Failed to save message: $e');
       rethrow;
     }
   }
 
   @override
-  Future<void> deleteMessage(String messageId) async {
+  Future<void> deleteMessage(String id) async {
     try {
-      // Implementacija će doći kasnije
-      await _logger.info('Message deleted: $messageId');
+      await _db.delete(
+        'messages',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      _logger.info('Message deleted successfully: $id');
     } catch (e) {
-      await _logger.error('Failed to delete message', e);
+      _logger.error('Failed to delete message: $e');
       rethrow;
     }
   }
-}
 
-  Message _mapToMessage(Map<String, dynamic> map) {
-    return Message(
-      id: map['id'],
-      content: map['content'],
-      senderId: map['senderId'],
-      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
-      type: MessageType.values.firstWhere(
-        (e) => e.toString() == map['type'],
-        orElse: () => MessageType.text,
-      ),
-      metadata: map['metadata'] != null
-          ? Map<String, dynamic>.from(map['metadata'] as Map)
-          : null,
-    );
-  }
-
+  @override
   Future<void> close() async {
-    await _db?.close();
-    _db = null;
+    try {
+      await _db.close();
+      _logger.info('Database closed successfully');
+    } catch (e) {
+      _logger.error('Failed to close database: $e');
+      rethrow;
+    }
   }
 }

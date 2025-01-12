@@ -1,0 +1,69 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'emergency_status.freezed.dart';
+part 'emergency_status.g.dart';
+
+@freezed
+class EmergencyManagerStatus with _$EmergencyManagerStatus {
+  const factory EmergencyManagerStatus({
+    required QueueStatus eventQueueStatus,
+    required StateStatus stateStatus,
+    required NetworkStatus networkStatus,
+    required EmergencyStatus emergencyStatus,
+    required DateTime timestamp,
+  }) = _EmergencyManagerStatus;
+
+  factory EmergencyManagerStatus.fromJson(Map<String, dynamic> json) =>
+      _$EmergencyManagerStatusFromJson(json);
+}
+
+@freezed
+class QueueStatus with _$QueueStatus {
+  const factory QueueStatus({
+    required int size,
+    required int processedCount,
+    required int errorCount,
+    required Duration averageProcessingTime,
+  }) = _QueueStatus;
+
+  factory QueueStatus.fromJson(Map<String, dynamic> json) =>
+      _$QueueStatusFromJson(json);
+}
+
+@freezed
+class StateStatus with _$StateStatus {
+  const factory StateStatus({
+    required bool isValid,
+    required bool isSynchronized,
+    required DateTime lastSyncTime,
+  }) = _StateStatus;
+
+  factory StateStatus.fromJson(Map<String, dynamic> json) =>
+      _$StateStatusFromJson(json);
+}
+
+@freezed
+class NetworkStatus with _$NetworkStatus {
+  const factory NetworkStatus({
+    required bool isConnected,
+    required int activeNodes,
+    required int messageQueueSize,
+    required DateTime lastActivity,
+  }) = _NetworkStatus;
+
+  factory NetworkStatus.fromJson(Map<String, dynamic> json) =>
+      _$NetworkStatusFromJson(json);
+}
+
+@freezed
+class EmergencyStatus with _$EmergencyStatus {
+  const factory EmergencyStatus({
+    required bool isActive,
+    required int severityLevel,
+    required List<String> activeEmergencies,
+    required DateTime lastUpdate,
+  }) = _EmergencyStatus;
+
+  factory EmergencyStatus.fromJson(Map<String, dynamic> json) =>
+      _$EmergencyStatusFromJson(json);
+}

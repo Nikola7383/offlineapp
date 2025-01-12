@@ -1,14 +1,9 @@
-@injectable
-class ErrorObserver extends InjectableService {
-  final ErrorHandler _errorHandler;
-  final List<ErrorListener> _listeners = [];
+import 'package:injectable/injectable.dart';
+import 'error_listener.dart';
 
-  ErrorObserver(
-    LoggerService logger,
-    this._errorHandler,
-  ) : super(logger) {
-    _initializeErrorListening();
-  }
+@injectable
+class ErrorObserver {
+  final List<ErrorListener> _listeners = [];
 
   void addListener(ErrorListener listener) {
     _listeners.add(listener);
@@ -18,33 +13,9 @@ class ErrorObserver extends InjectableService {
     _listeners.remove(listener);
   }
 
-  void _initializeErrorListening() {
-    _errorHandler.errorStream.listen((error) {
-      for (final listener in _listeners) {
-        try {
-          listener.onError(error);
-        } catch (e, stack) {
-          logger.error('Error listener failed', e, stack);
-        }
-      }
-
-      if (error.isCritical) {
-        _handleCriticalError(error);
-      }
-    });
+  void notifyError(AppError error) {
+    for (final listener in _listeners) {
+      listener.onError(error);
+    }
   }
-
-  void _handleCriticalError(AppError error) {
-    logger.critical(
-      'Critical error occurred',
-      error,
-      error.stackTrace,
-      extras: error.context,
-    );
-    // Implementirati recovery mehanizam
-  }
-}
-
-abstract class ErrorListener {
-  void onError(AppError error);
 }

@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:injectable/injectable.dart';
+import '../interfaces/message_service_interface.dart';
 import '../models/message.dart';
-import '../messaging/message_service.dart';
 import '../sync/sync_service.dart';
 import '../storage/database_service.dart';
 import '../logging/logger_service.dart';
@@ -46,7 +47,7 @@ class ChatError extends ChatState {
 
 // BLoC
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
-  final MessageService messageService;
+  final IMessageService messageService;
   final SyncService syncService;
   final DatabaseService storage;
   final LoggerService logger;

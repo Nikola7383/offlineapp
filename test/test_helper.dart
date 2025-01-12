@@ -1,39 +1,17 @@
-import 'test_imports.dart';
+import 'package:mockito/annotations.dart';
+import 'package:secure_event_app/core/interfaces/logger_service.dart';
+import 'package:secure_event_app/core/interfaces/message_service_interface.dart';
+import 'package:secure_event_app/core/interfaces/mesh_network_interface.dart';
+import 'package:secure_event_app/core/storage/secure_storage.dart';
+import 'package:secure_event_app/messaging/encryption/encryption_service.dart';
+import 'package:secure_event_app/messaging/verification/message_verification_service.dart';
 
 @GenerateMocks([
-  LoggerService,
-  MeshNetwork,
-  DatabaseService,
-  LoggerServiceImpl,
-  MeshNetworkImpl,
-  DatabaseServiceImpl,
+  ILoggerService,
+  IMessageService,
+  IMeshNetwork,
+  SecureStorage,
+  EncryptionService,
+  MessageVerificationService,
 ])
 void main() {}
-
-// Kreiramo mock instance
-MockLoggerService getMockLogger() {
-  final mock = MockLoggerService();
-  when(mock.info(any)).thenAnswer((_) => Future.value());
-  when(mock.error(any, any)).thenAnswer((_) => Future.value());
-  when(mock.warning(any)).thenAnswer((_) => Future.value());
-  return mock;
-}
-
-MockMeshNetwork getMockMeshNetwork() {
-  final mock = MockMeshNetwork();
-  when(mock.initialize()).thenAnswer((_) => Future.value());
-  when(mock.sendBatch(any)).thenAnswer((_) => Future.value());
-  return mock;
-}
-
-MockDatabaseService getMockDatabaseService() {
-  final mock = MockDatabaseService();
-  when(mock.initialize()).thenAnswer((_) => Future.value());
-  when(mock.getMessages(limit: anyNamed('limit'), offset: anyNamed('offset')))
-      .thenAnswer((_) => Future.value([]));
-  when(mock.saveMessage(any)).thenAnswer((_) => Future.value());
-  when(mock.deleteMessage(any)).thenAnswer((_) => Future.value());
-  return mock;
-}
-
-export 'test_helper.mocks.dart';

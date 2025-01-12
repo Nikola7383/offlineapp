@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class DatabaseVersionControl extends InjectableService {
   static const String VERSION_TABLE = 'schema_versions';
@@ -12,7 +14,8 @@ class DatabaseVersionControl extends InjectableService {
 
   Future<void> _createVersionTable() async {
     final db = await _db.database;
-    await db.execute('''
+    await db.execute(
+        '''
       CREATE TABLE IF NOT EXISTS $VERSION_TABLE (
         version INTEGER PRIMARY KEY,
         applied_at INTEGER NOT NULL,

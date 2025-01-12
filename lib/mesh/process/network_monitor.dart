@@ -1,223 +1,93 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:isolate';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-/// Konfiguracija za network monitor
-class NetworkMonitorConfig {
-  final Duration sampleInterval;
-  final List<String> interfacesToMonitor;
-  final int maxSamplesPerReport;
-  final bool includePerProcessStats;
+part 'network_monitor.freezed.dart';
+part 'network_monitor.g.dart';
 
-  const NetworkMonitorConfig({
-    this.sampleInterval = const Duration(seconds: 1),
-    this.interfacesToMonitor = const ['all'],
-    this.maxSamplesPerReport = 60,
-    this.includePerProcessStats = false,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'sampleInterval': sampleInterval.inMilliseconds,
-        'interfacesToMonitor': interfacesToMonitor,
-        'maxSamplesPerReport': maxSamplesPerReport,
-        'includePerProcessStats': includePerProcessStats,
-      };
-
-  factory NetworkMonitorConfig.fromJson(Map<String, dynamic> json) {
-    return NetworkMonitorConfig(
-      sampleInterval: Duration(milliseconds: json['sampleInterval'] as int),
-      interfacesToMonitor:
-          List<String>.from(json['interfacesToMonitor'] as List),
-      maxSamplesPerReport: json['maxSamplesPerReport'] as int,
-      includePerProcessStats: json['includePerProcessStats'] as bool,
-    );
-  }
-}
-
-/// Statistike mrežnog interfejsa
-class NetworkInterfaceStats {
-  final String name;
-  final int bytesReceived;
-  final int bytesSent;
-  final int packetsReceived;
-  final int packetsSent;
-  final int errors;
-  final int drops;
-  final DateTime timestamp;
-
-  const NetworkInterfaceStats({
-    required this.name,
-    required this.bytesReceived,
-    required this.bytesSent,
-    required this.packetsReceived,
-    required this.packetsSent,
-    required this.errors,
-    required this.drops,
-    required this.timestamp,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'bytesReceived': bytesReceived,
-        'bytesSent': bytesSent,
-        'packetsReceived': packetsReceived,
-        'packetsSent': packetsSent,
-        'errors': errors,
-        'drops': drops,
-        'timestamp': timestamp.toIso8601String(),
-      };
-}
-
-/// Apstraktna klasa za prikupljanje mrežnih statistika
 abstract class NetworkStatsCollector {
   Future<List<NetworkInterfaceStats>> collectStats();
 }
 
-/// Implementacija prikupljanja mrežnih statistika
-class NetworkStatsCollectorImpl implements NetworkStatsCollector {
-  @override
-  Future<List<NetworkInterfaceStats>> collectStats() async {
-    final stats = <NetworkInterfaceStats>[];
-    final interfaces = await NetworkInterface.list();
+@freezed
+class NetworkMonitorConfig with _$NetworkMonitorConfig {
+  const factory NetworkMonitorConfig({
+    @Default(Duration(seconds: 1)) Duration sampleInterval,
+    @Default(['all']) List<String> interfacesToMonitor,
+    @Default(60) int maxSamplesPerReport,
+    @Default(false) bool includePerProcessStats,
+  }) = _NetworkMonitorConfig;
 
-    for (final interface in interfaces) {
-      try {
-        final interfaceStats = await _collectInterfaceStats(interface);
-        if (interfaceStats != null) {
-          stats.add(interfaceStats);
-        }
-      } catch (e) {
-        print(
-            'Greška prilikom prikupljanja statistika za ${interface.name}: $e');
-      }
-    }
-
-    return stats;
-  }
-
-  Future<NetworkInterfaceStats?> _collectInterfaceStats(
-    NetworkInterface interface,
-  ) async {
-    // TODO: Implementirati platformski specifično prikupljanje statistika
-    // Ovo je mock implementacija
-    final now = DateTime.now();
-    final random = DateTime.now().millisecondsSinceEpoch;
-
-    return NetworkInterfaceStats(
-      name: interface.name,
-      bytesReceived: random % 1000000,
-      bytesSent: (random + 100) % 1000000,
-      packetsReceived: random % 1000,
-      packetsSent: (random + 100) % 1000,
-      errors: random % 10,
-      drops: random % 5,
-      timestamp: now,
-    );
-  }
+  factory NetworkMonitorConfig.fromJson(Map<String, dynamic> json) =>
+      _$NetworkMonitorConfigFromJson(json);
 }
 
-/// Prati mrežni saobraćaj i prikuplja statistike
+@freezed
+class NetworkInterfaceStats with _$NetworkInterfaceStats {
+  const factory NetworkInterfaceStats({
+    required String name,
+    required int bytesReceived,
+    required int bytesSent,
+    required int packetsReceived,
+    required int packetsSent,
+    required int errors,
+    required int drops,
+    required DateTime timestamp,
+  }) = _NetworkInterfaceStats;
+
+  factory NetworkInterfaceStats.fromJson(Map<String, dynamic> json) =>
+      _$NetworkInterfaceStatsFromJson(json);
+}
+
 class NetworkMonitor {
   final SendPort sendPort;
   final NetworkMonitorConfig config;
-  final NetworkStatsCollector statsCollector;
-  final Map<String, NetworkInterfaceStats> _lastStats = {};
-  Timer? sampleTimer;
-  bool isRunning = false;
+  final NetworkStatsCollector? statsCollector;
+  Timer? _timer;
+  bool _isRunning = false;
 
-  NetworkMonitor(
-    this.sendPort,
-    Map<String, dynamic> configMap, {
-    NetworkStatsCollector? statsCollector,
-  })  : config = NetworkMonitorConfig.fromJson(configMap),
-        statsCollector = statsCollector ?? NetworkStatsCollectorImpl();
+  NetworkMonitor(this.sendPort, Map<String, dynamic> configJson,
+      {this.statsCollector})
+      : config = NetworkMonitorConfig.fromJson(configJson);
 
-  /// Pokreće monitoring
+  bool get isRunning => _isRunning;
+  Timer? get sampleTimer => _timer;
+
   void start() {
-    if (isRunning) return;
-    isRunning = true;
-
-    sampleTimer = Timer.periodic(config.sampleInterval, (_) {
-      collectAndSendStats();
-    });
+    if (_isRunning) return;
+    _isRunning = true;
+    _timer =
+        Timer.periodic(config.sampleInterval, (_) => collectAndSendStats());
   }
 
-  /// Zaustavlja monitoring
   void stop() {
-    isRunning = false;
-    sampleTimer?.cancel();
-    sampleTimer = null;
+    _isRunning = false;
+    _timer?.cancel();
+    _timer = null;
   }
 
-  /// Prikuplja i šalje statistike
+  Future<List<NetworkInterfaceStats>> collectNetworkStats() async {
+    final stats = await statsCollector?.collectStats() ?? [];
+    if (config.interfacesToMonitor.contains('all')) {
+      return stats;
+    }
+    return stats
+        .where((stat) => config.interfacesToMonitor.contains(stat.name))
+        .toList();
+  }
+
   Future<void> collectAndSendStats() async {
     try {
       final stats = await collectNetworkStats();
-      if (stats.isNotEmpty) {
-        sendPort.send({
-          'type': 'stats',
-          'data': stats.map((s) => s.toJson()).toList(),
-        });
-      }
+      sendPort.send({
+        'type': 'stats',
+        'data': stats.map((s) => s.toJson()).toList(),
+      });
     } catch (e) {
       sendPort.send({
         'type': 'error',
-        'message': 'Greška prilikom prikupljanja statistika: $e',
+        'message': e.toString(),
       });
     }
   }
-
-  /// Prikuplja statistike mrežnih interfejsa
-  Future<List<NetworkInterfaceStats>> collectNetworkStats() async {
-    final stats = await statsCollector.collectStats();
-    return stats.where((s) => _shouldMonitorInterface(s.name)).toList();
-  }
-
-  /// Proverava da li treba pratiti interfejs
-  bool _shouldMonitorInterface(String name) {
-    if (config.interfacesToMonitor.contains('all')) return true;
-    return config.interfacesToMonitor.contains(name);
-  }
-}
-
-/// Mock implementacija prikupljanja statistika za testiranje
-class MockNetworkStatsCollector implements NetworkStatsCollector {
-  final List<NetworkInterfaceStats> mockStats;
-  bool _throwError = false;
-
-  MockNetworkStatsCollector(this.mockStats);
-
-  set throwError(bool value) => _throwError = value;
-
-  @override
-  Future<List<NetworkInterfaceStats>> collectStats() async {
-    if (_throwError) {
-      throw Exception('Test error');
-    }
-    return mockStats;
-  }
-}
-
-/// Pokreće network monitor u isolate-u
-void startNetworkMonitor(Map<String, dynamic> message) {
-  final sendPort = message['sendPort'] as SendPort;
-  final config = message['config'] as Map<String, dynamic>;
-
-  final monitor = NetworkMonitor(sendPort, config);
-  monitor.start();
-
-  // Slušaj komande
-  final receivePort = ReceivePort();
-  sendPort.send({'type': 'ready', 'port': receivePort.sendPort});
-
-  receivePort.listen((message) {
-    if (message is Map<String, dynamic>) {
-      switch (message['command']) {
-        case 'stop':
-          monitor.stop();
-          receivePort.close();
-          break;
-      }
-    }
-  });
 }

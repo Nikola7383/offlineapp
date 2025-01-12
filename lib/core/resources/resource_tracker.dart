@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class ResourceTracker extends InjectableService {
   final Map<String, ResourceUsage> _resourceUsage = {};

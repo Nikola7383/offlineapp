@@ -1,40 +1,41 @@
-enum UserRole { guest, regular, seed, admin }
-
+/// Predstavlja korisnika sistema
 class User {
   final String id;
   final String username;
-  final String passwordHash;
-  final UserRole role;
+  final String email;
   final DateTime createdAt;
+  final DateTime? lastLogin;
+  final bool isActive;
+  final Map<String, dynamic>? metadata;
 
-  User({
+  const User({
     required this.id,
     required this.username,
-    required this.passwordHash,
-    required this.role,
+    required this.email,
     required this.createdAt,
+    this.lastLogin,
+    this.isActive = true,
+    this.metadata,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'username': username,
-      'passwordHash': passwordHash,
-      'role': role.toString(),
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-
-  factory User.fromMap(Map<String, dynamic> map) {
+  /// Kreira kopiju sa izmenjenim poljima
+  User copyWith({
+    String? id,
+    String? username,
+    String? email,
+    DateTime? createdAt,
+    DateTime? lastLogin,
+    bool? isActive,
+    Map<String, dynamic>? metadata,
+  }) {
     return User(
-      id: map['id'],
-      username: map['username'],
-      passwordHash: map['passwordHash'],
-      role: UserRole.values.firstWhere(
-        (e) => e.toString() == map['role'],
-        orElse: () => UserRole.guest,
-      ),
-      createdAt: DateTime.parse(map['createdAt']),
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      createdAt: createdAt ?? this.createdAt,
+      lastLogin: lastLogin ?? this.lastLogin,
+      isActive: isActive ?? this.isActive,
+      metadata: metadata ?? this.metadata,
     );
   }
 }

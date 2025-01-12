@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class QueryOptimizer extends InjectableService {
   final DatabaseService _db;
@@ -28,7 +30,8 @@ class QueryOptimizer extends InjectableService {
     for (final table in tables) {
       for (final column in columns) {
         if (await _shouldCreateIndex(table, column)) {
-          await _db.execute('''
+          await _db.execute(
+              '''
             CREATE INDEX IF NOT EXISTS idx_${table}_${column}
             ON $table ($column)
           ''');

@@ -33,3 +33,41 @@ class SessionEvent {
     required this.peerId,
   });
 }
+
+/// Nivo ozbiljnosti upozorenja
+enum AlertSeverity {
+  /// Nizak nivo
+  low,
+
+  /// Srednji nivo
+  medium,
+
+  /// Visok nivo
+  high,
+
+  /// Kritičan nivo
+  critical
+}
+
+/// Upozorenje o performansama
+class PerformanceAlert {
+  /// Nivo ozbiljnosti
+  final AlertSeverity severity;
+
+  /// Poruka
+  final String message;
+
+  /// Metrika koja je izazvala upozorenje
+  final String metric;
+
+  /// Vrednost metrike
+  final Duration value;
+
+  /// Kreira novo upozorenje
+  const PerformanceAlert({
+    required this.severity,
+    required this.message,
+    required this.metric,
+    required this.value,
+  });
+}

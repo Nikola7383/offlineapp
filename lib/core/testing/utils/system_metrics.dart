@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class SystemMetrics extends InjectableService {
   Future<int> getCurrentMemoryUsage() async {

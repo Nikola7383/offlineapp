@@ -1,9 +1,31 @@
+import 'dart:collection';
+import 'package:injectable/injectable.dart';
+import '../interfaces/base_service.dart';
+import 'cache_manager.dart';
+
 @injectable
-class EvictionPolicy extends InjectableService {
+class EvictionPolicy implements IService {
   static const MAX_MEMORY_USAGE = 100 * 1024 * 1024; // 100MB
   final _lruList = LinkedHashMap<String, DateTime>();
+  bool _isInitialized = false;
+
+  @override
+  bool get isInitialized => _isInitialized;
+
+  @override
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    _isInitialized = true;
+  }
+
+  @override
+  Future<void> dispose() async {
+    _isInitialized = false;
+    _lruList.clear();
+  }
 
   Future<void> shouldEvict(CacheManager cache) async {
+    if (!_isInitialized) return;
     final memoryUsage = await _getMemoryUsage(cache);
 
     if (memoryUsage > MAX_MEMORY_USAGE) {
@@ -23,9 +45,12 @@ class EvictionPolicy extends InjectableService {
     }
   }
 
+  Future<int> _getMemoryUsage(CacheManager cache) async {
+    // TODO: Implement actual memory usage calculation
+    return 0;
+  }
+
   void recordAccess(String key) {
-    _lruList
-      ..remove(key)
-      ..putIfAbsent(key, () => DateTime.now());
+    _lruList[key] = DateTime.now();
   }
 }

@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class PerformanceOptimizer extends InjectableService {
   final DatabaseService _db;

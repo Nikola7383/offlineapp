@@ -1,32 +1,38 @@
-/// Tipovi batch operacija
-enum BatchOperationType { set, delete }
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-/// Model za batch operacije
-class BatchOperation {
-  final BatchOperationType type;
-  final String key;
-  final dynamic value;
+part 'database_models.freezed.dart';
+part 'database_models.g.dart';
 
-  const BatchOperation({
-    required this.type,
-    required this.key,
-    this.value,
-  });
+/// Konfiguracija baze podataka
+@freezed
+class DatabaseConfig with _$DatabaseConfig {
+  const factory DatabaseConfig({
+    required String name,
+    required String path,
+    @Default(false) bool encryptionEnabled,
+    String? encryptionKey,
+    @Default(1) int schemaVersion,
+  }) = _DatabaseConfig;
+
+  factory DatabaseConfig.fromJson(Map<String, dynamic> json) =>
+      _$DatabaseConfigFromJson(json);
 }
 
-/// Model za database config
-class DatabaseConfig {
-  final String name;
-  final String path;
-  final bool encryptionEnabled;
-  final String? encryptionKey;
-  final int schemaVersion;
+/// Tip operacije za batch processing
+enum BatchOperationType {
+  set,
+  delete,
+}
 
-  const DatabaseConfig({
-    required this.name,
-    required this.path,
-    this.encryptionEnabled = true,
-    this.encryptionKey,
-    this.schemaVersion = 1,
-  });
+/// Operacija za batch processing
+@freezed
+class BatchOperation with _$BatchOperation {
+  const factory BatchOperation({
+    required BatchOperationType type,
+    required String key,
+    dynamic value,
+  }) = _BatchOperation;
+
+  factory BatchOperation.fromJson(Map<String, dynamic> json) =>
+      _$BatchOperationFromJson(json);
 }

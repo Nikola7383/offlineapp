@@ -1,3 +1,13 @@
+import 'package:injectable/injectable.dart';
+import '../services/injectable_service.dart';
+import '../error/error_handler.dart';
+import '../resources/resource_manager.dart';
+import '../monitoring/metrics_collector.dart';
+import '../health/system_health.dart';
+import '../services/logger_service.dart';
+import 'dart:async';
+import 'package:rxdart/subjects.dart';
+
 @singleton
 class SystemAIController extends InjectableService {
   final ErrorHandler _errorHandler;

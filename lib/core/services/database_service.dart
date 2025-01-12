@@ -1,91 +1,157 @@
-import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:convert';
-import '../interfaces/database_service.dart';
-import '../interfaces/logger_service.dart';
-import '../models/database_models.dart';
-import '../models/result.dart';
-import '../models/service_error.dart';
-import 'base_service.dart';
+import 'package:injectable/injectable.dart';
+import '../interfaces/base_service.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
-class DatabaseService extends BaseService implements IDatabaseService {
-  final Map<String, dynamic> _storage = {};
-  final DatabaseConfig config;
-
-  DatabaseService(this.config);
+/// Servis za rad sa bazom podataka
+@LazySingleton()
+class DatabaseService implements IService {
+  late final Database _db;
+  static const String _databaseName = 'secure_event_app.db';
+  static const int _databaseVersion = 1;
 
   @override
-  Future<void> onInitialize() async {
-    // Ovde bi išla inicijalizacija prave baze
-    // Za sada samo simuliramo
+  Future<void> initialize() async {
+    final databasesPath = await getDatabasesPath();
+    final path = join(databasesPath, _databaseName);
+
+    _db = await openDatabase(
+      path,
+      version: _databaseVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   @override
-  Future<void> onDispose() async {
-    _storage.clear();
+  Future<void> dispose() async {
+    await _db.close();
   }
 
-  @override
-  Future<Result<T?>> get<T>(String key) async {
-    try {
-      return Result.success(_storage[key] as T?);
-    } catch (e) {
-      return Result.failure(e.toString());
-    }
+  /// Kreira tabele u bazi
+  Future<void> _onCreate(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE messages (
+        id TEXT PRIMARY KEY,
+        sender_id TEXT NOT NULL,
+        recipient_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        priority INTEGER NOT NULL,
+        metadata TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE encrypted_messages (
+        id TEXT PRIMARY KEY,
+        sender_id TEXT NOT NULL,
+        recipient_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        hash TEXT NOT NULL,
+        signature BLOB NOT NULL,
+        timestamp INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        priority INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE public_keys (
+        user_id TEXT PRIMARY KEY,
+        public_key TEXT NOT NULL,
+        timestamp INTEGER NOT NULL
+      )
+    ''');
   }
 
-  @override
-  Future<Result<void>> set<T>(String key, T value) async {
-    try {
-      _storage[key] = value;
-      return Result.success();
-    } catch (e) {
-      return Result.failure(e.toString());
-    }
+  /// Ažurira bazu
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    // TODO: Implementirati migracije kada bude potrebno
   }
 
-  @override
-  Future<Result<Map<String, T>>> getAll<T>(String prefix) async {
-    try {
-      final result = <String, T>{};
-      for (final entry in _storage.entries) {
-        if (entry.key.startsWith(prefix)) {
-          result[entry.key] = entry.value as T;
-        }
-      }
-      return Result.success(result);
-    } catch (e) {
-      return Result.failure(e.toString());
-    }
+  /// Izvršava upit
+  Future<List<Map<String, dynamic>>> query(
+    String table, {
+    bool? distinct,
+    List<String>? columns,
+    String? where,
+    List<Object?>? whereArgs,
+    String? groupBy,
+    String? having,
+    String? orderBy,
+    int? limit,
+    int? offset,
+  }) async {
+    return _db.query(
+      table,
+      distinct: distinct,
+      columns: columns,
+      where: where,
+      whereArgs: whereArgs,
+      groupBy: groupBy,
+      having: having,
+      orderBy: orderBy,
+      limit: limit,
+      offset: offset,
+    );
   }
 
-  @override
-  Future<Result<void>> delete(String key) async {
-    try {
-      _storage.remove(key);
-      return Result.success();
-    } catch (e) {
-      return Result.failure(e.toString());
-    }
+  /// Ubacuje podatke
+  Future<int> insert(
+    String table,
+    Map<String, Object?> values, {
+    String? nullColumnHack,
+    ConflictAlgorithm? conflictAlgorithm,
+  }) async {
+    return _db.insert(
+      table,
+      values,
+      nullColumnHack: nullColumnHack,
+      conflictAlgorithm: conflictAlgorithm,
+    );
   }
 
-  @override
-  Future<Result<void>> clear() async {
-    try {
-      _storage.clear();
-      return Result.success();
-    } catch (e) {
-      return Result.failure(e.toString());
-    }
+  /// Ažurira podatke
+  Future<int> update(
+    String table,
+    Map<String, Object?> values, {
+    String? where,
+    List<Object?>? whereArgs,
+    ConflictAlgorithm? conflictAlgorithm,
+  }) async {
+    return _db.update(
+      table,
+      values,
+      where: where,
+      whereArgs: whereArgs,
+      conflictAlgorithm: conflictAlgorithm,
+    );
   }
-}
 
-class DatabaseConfig {
-  final String name;
-  final bool encryptionEnabled;
+  /// Briše podatke
+  Future<int> delete(
+    String table, {
+    String? where,
+    List<Object?>? whereArgs,
+  }) async {
+    return _db.delete(
+      table,
+      where: where,
+      whereArgs: whereArgs,
+    );
+  }
 
-  const DatabaseConfig({
-    required this.name,
-    this.encryptionEnabled = false,
-  });
+  /// Izvršava batch operacije
+  Future<List<Object?>> batch(void Function(Batch batch) action) async {
+    final batch = _db.batch();
+    action(batch);
+    return batch.commit();
+  }
+
+  /// Izvršava transakciju
+  Future<T> transaction<T>(Future<T> Function(Transaction txn) action) async {
+    return _db.transaction(action);
+  }
 }

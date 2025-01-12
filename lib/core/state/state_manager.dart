@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class StateManager extends InjectableService {
   final _states = <String, BehaviorSubject>{};

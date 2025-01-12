@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class RecoveryManager extends InjectableService {
   final Map<String, RecoveryStrategy> _strategies = {};

@@ -1,68 +1,32 @@
 import 'package:get_it/get_it.dart';
-import '../auth/guest_auth_service.dart';
-import '../mesh/mesh_network.dart';
-import '../security/encryption_service.dart';
-import '../storage/database_service.dart';
-import '../logging/logger_service.dart';
-import '../performance/performance_monitor.dart';
+import 'package:injectable/injectable.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../interfaces/logger_service_interface.dart';
+import '../services/logger_service.dart';
 
 final getIt = GetIt.instance;
 
-Future<void> setupDependencies() async {
-  // Core Services
-  getIt.registerSingleton<LoggerService>(
-    LoggerService(),
-  );
+@InjectableInit(
+  initializerName: 'init', // default
+  preferRelativeImports: true, // default
+  asExtension: true, // default
+)
+Future<void> configureDependencies() async {
+  // Registrujemo singleton instance
+  getIt.registerSingleton<ILoggerService>(LoggerService());
 
-  getIt.registerSingleton<PerformanceMonitor>(
-    PerformanceMonitor(
-      logger: getIt<LoggerService>(),
-    ),
-  );
+  // Registrujemo SharedPreferences kao singleton
+  final sharedPreferences = await SharedPreferences.getInstance();
+  getIt.registerSingleton<SharedPreferences>(sharedPreferences);
 
-  getIt.registerSingletonAsync<EncryptionService>(() async {
-    final service = EncryptionService(
-      logger: getIt<LoggerService>(),
-    );
-    await service.initialize();
-    return service;
-  });
+  // Inicijalizujemo sve servise
+  await getIt<ILoggerService>().initialize();
+}
 
-  getIt.registerSingletonAsync<DatabaseService>(() async {
-    final service = DatabaseService(
-      logger: getIt<LoggerService>(),
-    );
-    await service.initialize();
-    return service;
-  });
+Future<void> disposeDependencies() async {
+  // Oslobađamo resurse svih servisa
+  await getIt<ILoggerService>().dispose();
 
-  // Feature Services
-  getIt.registerSingletonAsync<GuestAuthService>(() async {
-    final prefs = await SharedPreferences.getInstance();
-    return GuestAuthService(
-      logger: getIt<LoggerService>(),
-      prefs: prefs,
-    );
-  });
-
-  getIt.registerSingletonAsync<MeshNetwork>(() async {
-    final service = MeshNetwork(
-      logger: getIt<LoggerService>(),
-      encryption: await getIt.getAsync<EncryptionService>(),
-    );
-    await service.initialize();
-    return service;
-  });
-
-  // Blocs
-  getIt.registerFactory(() => AppBloc(
-        appService: getIt(),
-        logger: getIt(),
-      ));
-
-  getIt.registerFactory(() => AuthBloc(
-        authService: getIt(),
-        appService: getIt(),
-        logger: getIt(),
-      ));
+  // Resetujemo GetIt
+  await getIt.reset();
 }

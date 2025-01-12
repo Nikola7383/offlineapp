@@ -1,17 +1,21 @@
 import 'dart:async';
+import 'package:injectable/injectable.dart';
 import '../models/security_event.dart';
 import '../tactics/sabotage_traps_manager.dart';
 import '../encryption/encryption_service.dart';
 import '../isolation/node_isolation_manager.dart';
 import '../deception/decoy_traffic_manager.dart';
 import '../../mesh/models/node.dart';
+import '../../core/interfaces/base_service.dart';
+import '../../core/interfaces/logger_service_interface.dart';
 
-/// Upravlja automatskim odgovorima na bezbednosne pretnje
-class ThreatResponseManager {
+@singleton
+class ThreatResponseManager implements IService {
   final SabotageTrapsManager _trapsManager;
   final EncryptionService _encryptionService;
   final NodeIsolationManager _isolationManager;
   final DecoyTrafficManager _decoyTrafficManager;
+  final ILoggerService _logger;
   final _responseController = StreamController<ResponseEvent>.broadcast();
 
   // Aktivne mere zaštite
@@ -24,43 +28,47 @@ class ThreatResponseManager {
   static const int MAX_HISTORY_SIZE = 100;
   static const Duration COUNTERMEASURE_TIMEOUT = Duration(minutes: 30);
 
+  bool _isInitialized = false;
+
+  ThreatResponseManager(
+    this._trapsManager,
+    this._encryptionService,
+    this._isolationManager,
+    this._decoyTrafficManager,
+    this._logger,
+  );
+
+  @override
+  bool get isInitialized => _isInitialized;
+
   Stream<ResponseEvent> get responseStream => _responseController.stream;
 
-  ThreatResponseManager._({
-    required SabotageTrapsManager trapsManager,
-    required EncryptionService encryptionService,
-    required NodeIsolationManager isolationManager,
-    required DecoyTrafficManager decoyTrafficManager,
-  })  : _trapsManager = trapsManager,
-        _encryptionService = encryptionService,
-        _isolationManager = isolationManager,
-        _decoyTrafficManager = decoyTrafficManager;
+  @override
+  Future<void> initialize() async {
+    if (_isInitialized) {
+      _logger.warning('ThreatResponseManager already initialized');
+      return;
+    }
 
-  /// Kreira novu instancu ThreatResponseManager-a
-  static Future<ThreatResponseManager> create({
-    required SabotageTrapsManager trapsManager,
-    required EncryptionService encryptionService,
-    required NodeIsolationManager isolationManager,
-    required DecoyTrafficManager decoyTrafficManager,
-  }) async {
-    final manager = ThreatResponseManager._(
-      trapsManager: trapsManager,
-      encryptionService: encryptionService,
-      isolationManager: isolationManager,
-      decoyTrafficManager: decoyTrafficManager,
-    );
-
-    await manager._initialize();
-    return manager;
+    _logger.info('Initializing ThreatResponseManager');
+    // TODO: Implement initialization
+    _isInitialized = true;
+    _logger.info('ThreatResponseManager initialized');
   }
 
-  /// Inicijalizuje manager i povezuje se na relevantne stream-ove
-  Future<void> _initialize() async {
-    // Pretplata na događaje aktiviranja zamki
-    _trapsManager.trapStream.listen(_handleTrapEvent);
+  @override
+  Future<void> dispose() async {
+    if (!_isInitialized) {
+      _logger.warning('ThreatResponseManager not initialized');
+      return;
+    }
 
-    // Inicijalizacija osnovnih kontra-mera
-    _initializeCountermeasures();
+    _logger.info('Disposing ThreatResponseManager');
+    await _responseController.close();
+    _activeCountermeasures.clear();
+    _responseHistory.clear();
+    _isInitialized = false;
+    _logger.info('ThreatResponseManager disposed');
   }
 
   /// Postavlja osnovne kontra-mere
@@ -305,11 +313,6 @@ class ThreatResponseManager {
   List<ResponseEvent> _getRecentEvents(Duration period) {
     final cutoff = DateTime.now().subtract(period);
     return _responseHistory.where((e) => e.timestamp.isAfter(cutoff)).toList();
-  }
-
-  /// Čisti resurse
-  void dispose() {
-    _responseController.close();
   }
 }
 

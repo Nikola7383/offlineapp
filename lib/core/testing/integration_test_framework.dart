@@ -1,42 +1,43 @@
-@isTest
+import 'package:injectable/injectable.dart';
+import '../services/injectable_service.dart';
+import '../services/logger_service.dart';
+import '../di/service_locator.dart';
+import 'test_reporter.dart';
+import 'test_framework.dart';
+
+@injectable
 class IntegrationTestFramework extends TestFramework {
   final ServiceLocator _serviceLocator;
   final List<ServiceMock> _mocks = [];
 
-  IntegrationTestFramework(
-    LoggerService logger,
-    this._serviceLocator,
-  ) : super(logger);
+  IntegrationTestFramework(LoggerService logger, this._serviceLocator)
+      : super(logger);
 
-  Future<void> runIntegrationTests() async {
-    await _setupTestEnvironment();
-    await runAllTests();
-    await _tearDownTestEnvironment();
-  }
-
-  Future<void> _setupTestEnvironment() async {
-    await _serviceLocator.reset();
-    await _initializeMocks();
-    await _serviceLocator.initialize();
-  }
-
-  Future<void> _initializeMocks() async {
-    for (final mock in _mocks) {
-      _serviceLocator.instance.registerSingleton(mock);
-    }
-  }
-
-  Future<void> _tearDownTestEnvironment() async {
+  @override
+  Future<void> setUp() async {
+    await super.setUp();
     await _serviceLocator.dispose();
-    _mocks.clear();
   }
 
-  void registerMock<T extends Object>(ServiceMock<T> mock) {
-    _mocks.add(mock);
+  @override
+  Future<void> tearDown() async {
+    for (final mock in _mocks) {
+      await _serviceLocator.dispose();
+      final service = ServiceLocator.get<Object>();
+      if (service.runtimeType == mock.implementation.runtimeType) {
+        // Original service restored
+      }
+    }
+    _mocks.clear();
+    await super.tearDown();
+  }
+
+  void registerMock<T extends Object>(T mock) {
+    _mocks.add(ServiceMock<T>(mock));
   }
 }
 
-abstract class ServiceMock<T> {
-  String get serviceName;
-  T get instance;
+class ServiceMock<T extends Object> {
+  final T implementation;
+  ServiceMock(this.implementation);
 }

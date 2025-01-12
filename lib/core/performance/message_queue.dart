@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class MessageQueue extends InjectableService implements Disposable {
   static const MAX_QUEUE_SIZE = 10000;

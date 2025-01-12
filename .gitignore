@@ -8,12 +8,16 @@
 .buildlog/
 .history
 .svn/
+migrate_working_dir/
 
 # IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
+
+# VS Code related
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -25,7 +29,13 @@
 .pub-cache/
 .pub/
 /build/
-*.mocks.dart
+pubspec.lock
+
+# Generated Dart files
+**/*.freezed.dart
+**/*.g.dart
+**/*.config.dart
+**/*.mocks.dart
 
 # Web related
 lib/generated_plugin_registrant.dart
@@ -37,8 +47,9 @@ app.*.symbols
 app.*.map.json
 
 # Test related
-coverage/
-test/**/*.mocks.dart
+/coverage/
+.test_coverage.dart
+coverage_badge.svg
 
 # Android Studio will place build artifacts here
 /android/app/debug

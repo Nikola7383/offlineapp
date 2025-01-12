@@ -1,9 +1,15 @@
+import 'package:injectable/injectable.dart';
+import '../services/injectable_service.dart';
+import '../services/logger_service.dart';
+
 @injectable
 class TestReporter extends InjectableService {
   final StringBuffer _report = StringBuffer();
   int _passedTests = 0;
   int _failedTests = 0;
   DateTime? _startTime;
+
+  TestReporter(LoggerService logger) : super(logger);
 
   void startTesting() {
     _startTime = DateTime.now();

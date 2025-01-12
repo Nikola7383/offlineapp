@@ -1,0 +1,18 @@
+enum MessageType {
+  text,
+  image,
+  video,
+  audio,
+  file,
+  location,
+  emergency,
+  system,
+  broadcast,
+  direct,
+  group,
+  status,
+  command,
+  response,
+  error,
+  notification,
+}

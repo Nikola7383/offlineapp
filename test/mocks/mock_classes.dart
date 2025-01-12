@@ -1,14 +1,13 @@
 import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
-import 'package:secure_event_app/core/logging/logger_service.dart';
-import 'package:secure_event_app/core/mesh/mesh_network.dart';
-import 'package:secure_event_app/core/storage/database_service.dart';
+import 'package:secure_event_app/core/interfaces/logger_service_interface.dart';
+import 'package:secure_event_app/core/interfaces/metrics_collector_interface.dart';
+import 'package:secure_event_app/core/interfaces/communication_manager_interface.dart';
+import 'package:secure_event_app/core/interfaces/test_data_generator_interface.dart';
 
-@GenerateMocks([LoggerService, MeshNetwork, DatabaseService])
+@GenerateMocks([
+  ILoggerService,
+  IMetricsCollector,
+  ICommunicationManager,
+  ITestDataGenerator,
+], customMocks: [])
 void main() {}
-
-class MockMeshNetwork extends Mock implements MeshNetwork {}
-
-class MockLogger extends Mock implements LoggerService {}
-
-class MockStorage extends Mock implements DatabaseService {}

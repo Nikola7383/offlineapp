@@ -1,71 +1,96 @@
-import 'protocol.dart';
-import 'protocol_manager.dart';
+import 'package:equatable/equatable.dart';
 
-/// Tipovi čvorova u mreži
+/// Status čvora u mreži
+enum NodeStatus {
+  /// Aktivan čvor
+  active,
+
+  /// Neaktivan čvor
+  inactive,
+
+  /// Čvor u procesu povezivanja
+  connecting,
+
+  /// Čvor koji je izgubio konekciju
+  disconnected,
+
+  /// Čvor koji je uklonjen iz mreže
+  removed
+}
+
+/// Tip čvora u mreži
 enum NodeType {
-  /// Standardni čvor koji može da prosleđuje poruke
-  regular,
+  /// Standardni čvor
+  standard,
 
-  /// Super čvor sa većim kapacitetom i mogućnostima
-  superNode,
-
-  /// Edge čvor koji služi kao gateway
-  edge,
-
-  /// Relay čvor koji samo prosleđuje poruke
+  /// Relay čvor
   relay,
+
+  /// Gateway čvor
+  gateway,
+
+  /// Edge čvor
+  edge
 }
 
 /// Model koji predstavlja čvor u mesh mreži
-class Node {
+class Node extends Equatable {
+  /// Jedinstveni identifikator čvora
   final String id;
-  final bool isActive;
-  final double batteryLevel;
-  final NodeType type;
-  final Map<String, dynamic> capabilities;
 
-  const Node({
+  /// IP adresa čvora
+  final String address;
+
+  /// Port na kojem čvor sluša
+  final int port;
+
+  /// Nivo baterije (0.0 - 1.0)
+  final double batteryLevel;
+
+  /// Da li je čvor aktivan
+  final bool isActive;
+
+  /// Tip čvora
+  final NodeType type;
+
+  /// Vreme poslednjeg viđenja čvora
+  DateTime lastSeen;
+
+  /// Status čvora
+  NodeStatus status;
+
+  /// Kreira novi čvor
+  Node({
     required this.id,
+    required this.address,
+    required this.port,
     required this.isActive,
     required this.batteryLevel,
     required this.type,
-    this.capabilities = const {},
-  });
+    DateTime? lastSeen,
+    this.status = NodeStatus.active,
+  }) : lastSeen = lastSeen ?? DateTime.now();
 
-  /// Kreira kopiju čvora sa ažuriranim vrednostima
-  Node copyWith({
-    bool? isActive,
-    double? batteryLevel,
-    NodeType? type,
-    Map<String, dynamic>? capabilities,
-  }) {
-    return Node(
-      id: id,
-      isActive: isActive ?? this.isActive,
-      batteryLevel: batteryLevel ?? this.batteryLevel,
-      type: type ?? this.type,
-      capabilities: capabilities ?? Map.from(this.capabilities),
-    );
+  /// Ažurira vreme poslednjeg viđenja čvora
+  void updateLastSeen(DateTime time) {
+    lastSeen = time;
+  }
+
+  /// Ažurira status čvora
+  void updateStatus(NodeStatus newStatus) {
+    status = newStatus;
+  }
+
+  /// Vraća vreme proteklo od poslednjeg viđenja čvora
+  Duration getTimeSinceLastSeen() {
+    return DateTime.now().difference(lastSeen);
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Node &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          isActive == other.isActive &&
-          batteryLevel == other.batteryLevel &&
-          type == other.type;
+  List<Object?> get props => [id];
 
   @override
-  int get hashCode =>
-      id.hashCode ^ isActive.hashCode ^ batteryLevel.hashCode ^ type.hashCode;
-
-  @override
-  String toString() {
-    return 'Node(id: $id, isActive: $isActive, batteryLevel: $batteryLevel, type: $type)';
-  }
+  bool get stringify => true;
 }
 
 class NodeConnection {

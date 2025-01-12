@@ -1,37 +1,16 @@
-/// Model koji predstavlja rezultat verifikacije
-class VerificationResult {
-  final bool isValid;
-  final String? errorMessage;
-  final Map<String, dynamic>? data;
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'encrypted_message.dart';
 
-  const VerificationResult({
-    required this.isValid,
-    this.errorMessage,
-    this.data,
-  });
+part 'verification_result.freezed.dart';
 
-  /// Kreira uspešan rezultat sa podacima
-  factory VerificationResult.success(Map<String, dynamic> data) {
-    return VerificationResult(
-      isValid: true,
-      data: data,
-    );
-  }
-
-  /// Kreira neuspešan rezultat sa porukom o grešci
-  factory VerificationResult.failure(String message) {
-    return VerificationResult(
-      isValid: false,
-      errorMessage: message,
-    );
-  }
-
-  @override
-  String toString() {
-    if (isValid) {
-      return 'VerificationResult(valid: true, data: $data)';
-    } else {
-      return 'VerificationResult(valid: false, error: $errorMessage)';
-    }
-  }
+/// Model koji predstavlja rezultat verifikacije poruke
+@freezed
+class VerificationResult with _$VerificationResult {
+  const factory VerificationResult({
+    required bool isValid,
+    required EncryptedMessage message,
+    required DateTime verificationTime,
+    String? failureReason,
+    Map<String, dynamic>? details,
+  }) = _VerificationResult;
 }

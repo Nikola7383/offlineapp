@@ -1,106 +1,27 @@
-@injectable
-class RecoveryStrategyManager extends InjectableService {
-  final Map<HealthIssueType, List<RecoveryStrategy>> _strategies = {};
-  final _recoveryResults = StreamController<RecoveryResult>.broadcast();
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  Stream<RecoveryResult> get results => _recoveryResults.stream;
+part 'recovery_strategies.freezed.dart';
+part 'recovery_strategies.g.dart';
 
-  RecoveryStrategyManager(LoggerService logger) : super(logger) {
-    _registerDefaultStrategies();
-  }
+@freezed
+class RecoveryStrategy with _$RecoveryStrategy {
+  const factory RecoveryStrategy({
+    required String name,
+    required String description,
+    @Default([]) List<String> steps,
+    @Default({}) Map<String, dynamic> parameters,
+  }) = _RecoveryStrategy;
 
-  void _registerDefaultStrategies() {
-    // Database Recovery Strategies
-    registerStrategy(
-      HealthIssueType.database,
-      DatabaseReconnectionStrategy(),
-    );
-    registerStrategy(
-      HealthIssueType.database,
-      DatabaseCleanupStrategy(),
-    );
-
-    // Network Recovery Strategies
-    registerStrategy(
-      HealthIssueType.network,
-      NetworkReconnectionStrategy(),
-    );
-    registerStrategy(
-      HealthIssueType.network,
-      PeerDiscoveryStrategy(),
-    );
-
-    // Cache Recovery Strategies
-    registerStrategy(
-      HealthIssueType.cache,
-      CacheEvictionStrategy(),
-    );
-    registerStrategy(
-      HealthIssueType.cache,
-      CacheResyncStrategy(),
-    );
-
-    // Security Recovery Strategies
-    registerStrategy(
-      HealthIssueType.security,
-      KeyRotationStrategy(),
-    );
-    registerStrategy(
-      HealthIssueType.security,
-      SessionResetStrategy(),
-    );
-  }
-
-  void registerStrategy(HealthIssueType type, RecoveryStrategy strategy) {
-    _strategies.putIfAbsent(type, () => []).add(strategy);
-  }
-
-  Future<RecoveryResult> attemptRecovery(HealthIssue issue) async {
-    final strategies = _strategies[issue.type] ?? [];
-    if (strategies.isEmpty) {
-      return RecoveryResult(
-        successful: false,
-        message: 'No recovery strategies available for ${issue.type}',
-      );
-    }
-
-    RecoveryResult? result;
-    for (final strategy in strategies) {
-      try {
-        result = await strategy.execute(issue);
-        if (result.successful) break;
-      } catch (e, stack) {
-        logger.error(
-          'Recovery strategy ${strategy.runtimeType} failed',
-          e,
-          stack,
-        );
-      }
-    }
-
-    final finalResult = result ??
-        RecoveryResult(
-          successful: false,
-          message: 'All recovery attempts failed',
-        );
-
-    _recoveryResults.add(finalResult);
-    return finalResult;
-  }
+  factory RecoveryStrategy.fromJson(Map<String, dynamic> json) =>
+      _$RecoveryStrategyFromJson(json);
 }
 
-abstract class RecoveryStrategy {
-  Future<RecoveryResult> execute(HealthIssue issue);
-}
-
-class RecoveryResult {
-  final bool successful;
-  final String message;
-  final Map<String, dynamic>? metrics;
-
-  RecoveryResult({
-    required this.successful,
-    required this.message,
-    this.metrics,
-  });
+class RecoveryStrategyManager {
+  Future<RecoveryStrategy> selectStrategy(String issue) async {
+    // TODO: Implementirati logiku za izbor strategije oporavka
+    return const RecoveryStrategy(
+      name: 'default',
+      description: 'Default recovery strategy',
+    );
+  }
 }

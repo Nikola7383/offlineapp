@@ -1,3 +1,10 @@
+import 'package:injectable/injectable.dart';
+import 'package:synchronized/synchronized.dart';
+import 'package:uuid/uuid.dart';
+import '../services/logger_service.dart';
+import '../services/database_service.dart';
+import '../interfaces/base_service.dart';
+
 @injectable
 class TransactionManager extends InjectableService implements Disposable {
   final DatabaseService _db;

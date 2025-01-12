@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'package:injectable/injectable.dart';
 import '../auth/auth_service.dart';
 import '../mesh/mesh_network.dart';
-import '../messaging/message_service.dart';
+import '../interfaces/message_service_interface.dart';
 import '../storage/database_service.dart';
 import '../notifications/notification_service.dart';
 import '../settings/settings_service.dart';
@@ -12,7 +13,7 @@ import '../models/message.dart';
 class AppService {
   final AuthService auth;
   final MeshNetwork mesh;
-  final MessageService messaging;
+  final IMessageService messaging;
   final DatabaseService storage;
   final NotificationService notifications;
   final SettingsService settings;

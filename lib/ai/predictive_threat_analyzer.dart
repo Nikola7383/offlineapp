@@ -1,320 +1,237 @@
 import 'dart:async';
-import '../mesh/models/node_stats.dart';
-import '../mesh/models/connection_info.dart';
-import '../security/security_event.dart';
+import 'base_ai_service.dart';
+import 'ai_service_interface.dart';
+import '../enums/ai_enums.dart';
 
-/// Tipovi pretnji koje sistem može da detektuje
-enum ThreatType {
-  nodeCompromise,
-  networkPartition,
-  dataManipulation,
-  resourceExhaustion,
-  communicationInterference,
-  patternAnomaly
-}
-
-/// Nivo ozbiljnosti pretnje
-enum ThreatSeverity { critical, high, medium, low, info }
-
-/// Detalji o detektovanoj pretnji
-class ThreatInfo {
-  final ThreatType type;
-  final ThreatSeverity severity;
-  final String nodeId;
-  final DateTime detectedAt;
-  final Map<String, dynamic> metadata;
-  final double confidence;
-
-  const ThreatInfo({
-    required this.type,
-    required this.severity,
-    required this.nodeId,
-    required this.detectedAt,
-    required this.metadata,
-    required this.confidence,
-  });
+class PredictiveThreatAnalyzer extends BaseAIService {
+  final Map<String, double> _threatScores = {};
+  final List<Map<String, dynamic>> _historicalData = [];
+  Timer? _analysisTimer;
 
   @override
-  String toString() {
-    return 'ThreatInfo('
-        'type: $type, '
-        'severity: $severity, '
-        'nodeId: $nodeId, '
-        'confidence: ${confidence.toStringAsFixed(2)})';
-  }
-}
-
-/// Analizira mrežu i predviđa potencijalne pretnje
-class PredictiveThreatAnalyzer {
-  // Istorija pretnji po čvoru
-  final Map<String, List<ThreatInfo>> _threatHistory = {};
-
-  // Statistike čvorova kroz vreme
-  final Map<String, List<NodeStats>> _nodeStatsHistory = {};
-
-  // Stream controller za pretnje
-  final _threatController = StreamController<ThreatInfo>.broadcast();
-
-  // Konstante
-  static const int MAX_HISTORY_SIZE = 1000;
-  static const Duration ANALYSIS_INTERVAL = Duration(minutes: 5);
-  static const double CONFIDENCE_THRESHOLD = 0.75;
-
-  Timer? _analysisTimer;
-  bool _isAnalyzing = false;
-
-  /// Pokreće analizator
-  void start() {
-    if (_analysisTimer != null) return;
-    _analysisTimer =
-        Timer.periodic(ANALYSIS_INTERVAL, (_) => _analyzeNetwork());
+  Future<void> processData(dynamic input) async {
+    _checkValidInput(input);
+    _historicalData.add(input as Map<String, dynamic>);
+    await _analyzeThreat(input);
+    updateMetrics(
+      processedEvents: _historicalData.length,
+      accuracy: _calculateAccuracy(),
+      performance: _calculatePerformance(),
+    );
   }
 
-  /// Dodaje nove statistike čvora u istoriju
-  void addNodeStats(String nodeId, NodeStats stats) {
-    final history = _nodeStatsHistory.putIfAbsent(nodeId, () => []);
-    history.add(stats);
+  @override
+  Future<Map<String, dynamic>> getAnalysis() async {
+    return {
+      'threatScores': Map<String, double>.from(_threatScores),
+      'confidence': status.confidenceLevel,
+      'analysisTimestamp': DateTime.now().toIso8601String(),
+      'samplesAnalyzed': _historicalData.length,
+    };
+  }
 
-    // Održavaj maksimalnu veličinu istorije
-    if (history.length > MAX_HISTORY_SIZE) {
-      history.removeAt(0);
+  @override
+  Future<void> train(dynamic trainingData) async {
+    if (trainingData is! List<Map<String, dynamic>>) {
+      throw ArgumentError('Training data must be a List of Maps');
     }
-  }
 
-  /// Analizira mrežu i detektuje potencijalne pretnje
-  Future<void> _analyzeNetwork() async {
-    if (_isAnalyzing) return;
-    _isAnalyzing = true;
-
-    try {
-      for (final entry in _nodeStatsHistory.entries) {
-        final nodeId = entry.key;
-        final history = entry.value;
-
-        if (history.length < 2) continue;
-
-        // Analiziraj trendove
-        await _analyzeNodeTrends(nodeId, history);
-
-        // Analiziraj anomalije
-        await _analyzeNodeAnomalies(nodeId, history);
-
-        // Analiziraj obrasce
-        await _analyzeNodePatterns(nodeId, history);
-      }
-    } finally {
-      _isAnalyzing = false;
-    }
-  }
-
-  /// Analizira trendove u performansama čvora
-  Future<void> _analyzeNodeTrends(
-      String nodeId, List<NodeStats> history) async {
-    // Analiziraj trend pouzdanosti
-    final reliabilityTrend = _calculateTrend(
-      history.map((s) => s.reliability).toList(),
+    updateStatus(
+      state: AIProcessingState.learning,
+      statusMessage: 'Training model with ${trainingData.length} samples',
     );
 
-    if (reliabilityTrend < -0.1) {
-      _reportThreat(ThreatInfo(
-        type: ThreatType.nodeCompromise,
-        severity: ThreatSeverity.high,
-        nodeId: nodeId,
-        detectedAt: DateTime.now(),
-        metadata: {'reliabilityTrend': reliabilityTrend},
-        confidence: _calculateConfidence(reliabilityTrend.abs()),
-      ));
+    for (final sample in trainingData) {
+      await _analyzeThreat(sample, isTraining: true);
     }
 
-    // Analiziraj trend grešaka
-    final errorTrend = _calculateTrend(
-      history.map((s) => s.errorRate).toList(),
+    updateStatus(
+      state: AIProcessingState.idle,
+      confidenceLevel: AIConfidenceLevel.high,
+      statusMessage: 'Training completed',
+    );
+  }
+
+  @override
+  Future<void> validate(dynamic validationData) async {
+    if (validationData is! List<Map<String, dynamic>>) {
+      throw ArgumentError('Validation data must be a List of Maps');
+    }
+
+    updateStatus(
+      state: AIProcessingState.analyzing,
+      statusMessage: 'Validating model with ${validationData.length} samples',
     );
 
-    if (errorTrend > 0.1) {
-      _reportThreat(ThreatInfo(
-        type: ThreatType.communicationInterference,
-        severity: ThreatSeverity.medium,
-        nodeId: nodeId,
-        detectedAt: DateTime.now(),
-        metadata: {'errorTrend': errorTrend},
-        confidence: _calculateConfidence(errorTrend),
-      ));
+    double totalAccuracy = 0;
+    for (final sample in validationData) {
+      await _analyzeThreat(sample, isValidation: true);
+      totalAccuracy += _calculateAccuracy();
     }
+
+    final averageAccuracy = totalAccuracy / validationData.length;
+    updateMetrics(accuracy: averageAccuracy);
+
+    updateStatus(
+      state: AIProcessingState.idle,
+      statusMessage:
+          'Validation completed with ${(averageAccuracy * 100).toStringAsFixed(2)}% accuracy',
+    );
   }
 
-  /// Analizira anomalije u ponašanju čvora
-  Future<void> _analyzeNodeAnomalies(
-      String nodeId, List<NodeStats> history) async {
-    final currentStats = history.last;
-    final previousStats = history[history.length - 2];
-
-    // Detektuj nagle promene u broju konekcija
-    final connectionDelta = currentStats.activeConnections.length -
-        previousStats.activeConnections.length;
-
-    if (connectionDelta.abs() > 5) {
-      _reportThreat(ThreatInfo(
-        type: ThreatType.networkPartition,
-        severity: ThreatSeverity.high,
-        nodeId: nodeId,
-        detectedAt: DateTime.now(),
-        metadata: {'connectionDelta': connectionDelta},
-        confidence: _calculateConfidence(connectionDelta.abs() / 10),
-      ));
-    }
-
-    // Detektuj anomalije u potrošnji resursa
-    if (currentStats.batteryLevel < previousStats.batteryLevel * 0.8) {
-      _reportThreat(ThreatInfo(
-        type: ThreatType.resourceExhaustion,
-        severity: ThreatSeverity.medium,
-        nodeId: nodeId,
-        detectedAt: DateTime.now(),
-        metadata: {
-          'batteryDrain': previousStats.batteryLevel - currentStats.batteryLevel
-        },
-        confidence: _calculateConfidence(
-            (previousStats.batteryLevel - currentStats.batteryLevel) /
-                previousStats.batteryLevel),
-      ));
-    }
-  }
-
-  /// Analizira obrasce u ponašanju čvora
-  Future<void> _analyzeNodePatterns(
-      String nodeId, List<NodeStats> history) async {
-    // Analiziraj obrasce u konekcijama
-    final connectionPatterns = _analyzeConnectionPatterns(
-      history.expand((s) => s.activeConnections).toList(),
+  @override
+  Future<void> optimize() async {
+    updateStatus(
+      state: AIProcessingState.adapting,
+      statusMessage: 'Optimizing threat analysis model',
     );
 
-    if (connectionPatterns.isNotEmpty) {
-      _reportThreat(ThreatInfo(
-        type: ThreatType.patternAnomaly,
-        severity: ThreatSeverity.low,
-        nodeId: nodeId,
-        detectedAt: DateTime.now(),
-        metadata: {'patterns': connectionPatterns},
-        confidence: _calculateConfidence(connectionPatterns.length / 10),
-      ));
-    }
+    // Implement optimization logic here
+    await Future.delayed(const Duration(seconds: 1));
+
+    updateStatus(
+      state: AIProcessingState.idle,
+      statusMessage: 'Model optimization completed',
+    );
   }
 
-  /// Računa trend u nizu vrednosti
-  double _calculateTrend(List<double> values) {
-    if (values.length < 2) return 0.0;
-
-    var sum = 0.0;
-    for (var i = 1; i < values.length; i++) {
-      sum += (values[i] - values[i - 1]);
-    }
-
-    return sum / (values.length - 1);
+  @override
+  Future<void> onStart() async {
+    _analysisTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _performPeriodicAnalysis(),
+    );
   }
 
-  /// Analizira obrasce u konekcijama
-  List<Map<String, dynamic>> _analyzeConnectionPatterns(
-      List<ConnectionInfo> connections) {
-    final patterns = <Map<String, dynamic>>[];
-
-    // Grupiši konekcije po čvoru
-    final connectionsByNode = <String, List<ConnectionInfo>>{};
-    for (final conn in connections) {
-      connectionsByNode.putIfAbsent(conn.targetNodeId, () => []).add(conn);
-    }
-
-    // Traži obrasce u svakoj grupi
-    for (final entry in connectionsByNode.entries) {
-      final nodeConnections = entry.value;
-
-      // Traži ponavljajuće konekcije
-      if (nodeConnections.length > 10) {
-        patterns.add({
-          'type': 'highFrequencyConnections',
-          'nodeId': entry.key,
-          'count': nodeConnections.length,
-        });
-      }
-
-      // Traži obrasce u vremenu uspostavljanja konekcija
-      final timings = _analyzeConnectionTimings(nodeConnections);
-      if (timings != null) {
-        patterns.add(timings);
-      }
-    }
-
-    return patterns;
-  }
-
-  /// Analizira vremenske obrasce u konekcijama
-  Map<String, dynamic>? _analyzeConnectionTimings(
-      List<ConnectionInfo> connections) {
-    if (connections.length < 3) return null;
-
-    final intervals = <Duration>[];
-    for (var i = 1; i < connections.length; i++) {
-      intervals.add(connections[i].establishedAt.difference(
-            connections[i - 1].establishedAt,
-          ));
-    }
-
-    // Traži regularne intervale
-    final avgInterval = intervals.fold<Duration>(
-          Duration.zero,
-          (sum, interval) => sum + interval,
-        ) ~/
-        intervals.length;
-
-    var regularCount = 0;
-    for (final interval in intervals) {
-      if ((interval - avgInterval).abs() < const Duration(seconds: 5)) {
-        regularCount++;
-      }
-    }
-
-    if (regularCount > intervals.length * 0.7) {
-      return {
-        'type': 'regularIntervals',
-        'avgInterval': avgInterval.inSeconds,
-        'confidence': regularCount / intervals.length,
-      };
-    }
-
-    return null;
-  }
-
-  /// Računa pouzdanost predikcije
-  double _calculateConfidence(double factor) {
-    return (factor * 0.8 + 0.2).clamp(0.0, 1.0);
-  }
-
-  /// Prijavljuje detektovanu pretnju
-  void _reportThreat(ThreatInfo threat) {
-    if (threat.confidence < CONFIDENCE_THRESHOLD) return;
-
-    final history = _threatHistory.putIfAbsent(threat.nodeId, () => []);
-    history.add(threat);
-
-    // Održavaj maksimalnu veličinu istorije
-    if (history.length > MAX_HISTORY_SIZE) {
-      history.removeAt(0);
-    }
-
-    _threatController.add(threat);
-  }
-
-  /// Stream detektovanih pretnji
-  Stream<ThreatInfo> get threatStream => _threatController.stream;
-
-  /// Vraća istoriju pretnji za čvor
-  List<ThreatInfo> getThreatHistory(String nodeId) {
-    return List.unmodifiable(_threatHistory[nodeId] ?? []);
-  }
-
-  /// Zaustavlja analizator
-  void dispose() {
+  @override
+  Future<void> onStop() async {
     _analysisTimer?.cancel();
-    _threatController.close();
+  }
+
+  @override
+  Future<void> onCleanup() async {
+    _threatScores.clear();
+    _historicalData.clear();
+    _analysisTimer?.cancel();
+  }
+
+  void _checkValidInput(dynamic input) {
+    if (input is! Map<String, dynamic>) {
+      throw ArgumentError('Input must be a Map<String, dynamic>');
+    }
+
+    final requiredFields = ['timestamp', 'source', 'eventType'];
+    for (final field in requiredFields) {
+      if (!input.containsKey(field)) {
+        throw ArgumentError('Input missing required field: $field');
+      }
+    }
+  }
+
+  Future<void> _analyzeThreat(
+    Map<String, dynamic> data, {
+    bool isTraining = false,
+    bool isValidation = false,
+  }) async {
+    final source = data['source'] as String;
+    final eventType = data['eventType'] as String;
+
+    // Simple threat scoring logic - should be replaced with more sophisticated algorithm
+    double threatScore = 0.0;
+
+    // Factor 1: Event type weight
+    final eventWeight = _calculateEventWeight(eventType);
+    threatScore += eventWeight;
+
+    // Factor 2: Source reputation
+    final sourceReputation = _calculateSourceReputation(source);
+    threatScore += sourceReputation;
+
+    // Factor 3: Historical pattern
+    final historicalWeight = _calculateHistoricalWeight(source, eventType);
+    threatScore += historicalWeight;
+
+    // Normalize score to 0-1 range
+    threatScore = threatScore.clamp(0.0, 1.0);
+
+    _threatScores[source] = threatScore;
+
+    if (!isTraining && !isValidation) {
+      updateStatus(
+        confidenceLevel: _determineConfidenceLevel(threatScore),
+        statusMessage:
+            'Analyzed threat from $source: ${(threatScore * 100).toStringAsFixed(2)}%',
+      );
+    }
+  }
+
+  double _calculateEventWeight(String eventType) {
+    // Implement event type weighting logic
+    switch (eventType.toLowerCase()) {
+      case 'unauthorized_access':
+        return 0.8;
+      case 'data_breach':
+        return 0.9;
+      case 'malware_detected':
+        return 0.7;
+      case 'suspicious_activity':
+        return 0.5;
+      default:
+        return 0.3;
+    }
+  }
+
+  double _calculateSourceReputation(String source) {
+    // Implement source reputation calculation logic
+    if (_threatScores.containsKey(source)) {
+      return _threatScores[source]! * 0.5;
+    }
+    return 0.3; // Default reputation for new sources
+  }
+
+  double _calculateHistoricalWeight(String source, String eventType) {
+    // Implement historical pattern analysis logic
+    final relatedEvents = _historicalData
+        .where((event) =>
+            event['source'] == source && event['eventType'] == eventType)
+        .length;
+
+    return (relatedEvents / 100).clamp(0.0, 0.5);
+  }
+
+  AIConfidenceLevel _determineConfidenceLevel(double threatScore) {
+    if (threatScore >= 0.8) return AIConfidenceLevel.veryHigh;
+    if (threatScore >= 0.6) return AIConfidenceLevel.high;
+    if (threatScore >= 0.4) return AIConfidenceLevel.medium;
+    if (threatScore >= 0.2) return AIConfidenceLevel.low;
+    return AIConfidenceLevel.veryLow;
+  }
+
+  double _calculateAccuracy() {
+    // Implement accuracy calculation logic
+    if (_historicalData.isEmpty) return 0.0;
+    return 0.85; // Placeholder - should be based on actual validation
+  }
+
+  double _calculatePerformance() {
+    // Implement performance calculation logic
+    final processingTime = DateTime.now().difference(status.lastUpdated);
+    return (1000 / processingTime.inMilliseconds).clamp(0.0, 1.0);
+  }
+
+  Future<void> _performPeriodicAnalysis() async {
+    updateStatus(
+      state: AIProcessingState.analyzing,
+      statusMessage: 'Performing periodic threat analysis',
+    );
+
+    // Analyze historical patterns
+    final analysis = await getAnalysis();
+
+    updateStatus(
+      state: AIProcessingState.idle,
+      statusMessage:
+          'Periodic analysis completed: ${analysis.length} threats evaluated',
+    );
   }
 }

@@ -1,4 +1,9 @@
-@isTest
+import 'package:injectable/injectable.dart';
+import '../services/injectable_service.dart';
+import '../services/logger_service.dart';
+import 'test_reporter.dart';
+
+@injectable
 class TestFramework extends InjectableService {
   final Map<String, TestSuite> _suites = {};
   final TestReporter _reporter;
@@ -6,6 +11,9 @@ class TestFramework extends InjectableService {
   TestFramework(LoggerService logger)
       : _reporter = TestReporter(logger),
         super(logger);
+
+  Future<void> setUp() async {}
+  Future<void> tearDown() async {}
 
   Future<void> runAllTests() async {
     _reporter.startTesting();

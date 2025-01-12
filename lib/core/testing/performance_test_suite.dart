@@ -1,4 +1,7 @@
-@isTest
+import 'package:test/test.dart';
+import 'package:injectable/injectable.dart';
+
+@injectable
 class PerformanceTestSuite implements TestSuite {
   @override
   String get name => 'Performance Tests';

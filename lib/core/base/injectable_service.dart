@@ -1,19 +1,23 @@
 import 'package:injectable/injectable.dart';
-import '../services/logger_service.dart';
+import '../interfaces/logger_service.dart';
 
-@injectable
-abstract class InjectableService {
-  final LoggerService logger;
+abstract class Disposable {
+  Future<void> dispose();
+}
 
-  InjectableService(this.logger);
+abstract class InjectableService implements Disposable {
+  final ILoggerService _logger;
+
+  InjectableService(this._logger);
 
   @PostConstruct()
   Future<void> initialize() async {
-    // Override in concrete implementations
+    _logger.info('Initializing ${runtimeType.toString()}');
   }
 
+  @override
   @disposeMethod
   Future<void> dispose() async {
-    // Override in concrete implementations
+    _logger.info('Disposing ${runtimeType.toString()}');
   }
 }

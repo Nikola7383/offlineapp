@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class PeerDiscoveryManager extends InjectableService {
   final MeshRouter _router;

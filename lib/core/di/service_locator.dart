@@ -1,106 +1,88 @@
-import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
+import '../interfaces/base_service.dart';
+import '../interfaces/logger_service.dart';
 
-import '../services/logger_service.dart';
-import '../database/database_service.dart';
-import '../mesh/mesh_network.dart';
-import '../security/encryption_service.dart';
-import '../optimizations/cache_manager.dart';
-import '../optimizations/batch_processor.dart';
-import '../mesh/mesh_optimizer.dart';
-import '../mesh/load_balancer.dart';
-import '../utils/resource_manager.dart';
-import '../services/cleanup_service.dart';
+/// Interfejs za servis lokator
+abstract class IServiceLocator {
+  /// Inicijalizuje servis lokator
+  Future<void> initialize();
 
-@InjectableInit()
-class ServiceLocator {
-  static final GetIt instance = GetIt.instance;
+  /// Oslobađa resurse
+  Future<void> dispose();
 
-  @PostConstruct()
-  static Future<void> initialize() async {
-    // Core Services
-    instance.registerSingleton<LoggerService>(LoggerService());
+  /// Registruje servis
+  void register<T extends IService>(T instance);
 
-    // Resource Management
-    instance.registerSingleton<ResourceManager>(
-      ResourceManager(instance.get<LoggerService>()),
-    );
+  /// Vraća registrovani servis
+  T get<T extends IService>();
 
-    instance.registerSingleton<CleanupService>(
-      CleanupService(
-        resourceManager: instance.get<ResourceManager>(),
-        logger: instance.get<LoggerService>(),
-      ),
-    );
+  /// Proverava da li je servis registrovan
+  bool isRegistered<T extends IService>();
+}
 
-    // Initialize cleanup service
-    instance.get<CleanupService>().initialize();
+@LazySingleton(as: IServiceLocator)
+class ServiceLocator implements IServiceLocator {
+  final ILoggerService _logger;
+  final Map<Type, IService> _services = {};
+  bool _isInitialized = false;
 
-    // Wait for logger to be ready before initializing other services
-    await instance.isReady<LoggerService>();
-    final logger = instance.get<LoggerService>();
+  ServiceLocator(this._logger);
 
-    // Database
-    instance.registerSingletonAsync<DatabaseService>(() async {
-      final service = DatabaseService(logger: logger);
-      await service.initialize();
-      return service;
-    });
+  @override
+  Future<void> initialize() async {
+    if (_isInitialized) return;
 
-    // Cache
-    instance.registerSingletonAsync<CacheManager>(() async {
-      final cache = CacheManager(logger: logger);
-      await cache.initialize();
-      return cache;
-    });
+    try {
+      // Registruj osnovne servise
+      register<ILoggerService>(_logger);
 
-    // Mesh Network Dependencies
-    instance.registerSingleton<MeshOptimizer>(MeshOptimizer());
+      // Inicijalizuj sve servise
+      for (final service in _services.values) {
+        await service.initialize();
+      }
 
-    instance.registerSingletonAsync<MeshNetwork>(() async {
-      final mesh = MeshNetwork(
-        logger: logger,
-        optimizer: instance.get<MeshOptimizer>(),
-        cache: await instance.getAsync<CacheManager>(),
-      );
-      await mesh.initialize();
-      return mesh;
-    });
-
-    // Batch Processing
-    instance.registerSingletonAsync<BatchProcessor>(() async {
-      final db = await instance.getAsync<DatabaseService>();
-      return BatchProcessor(
-        db: db,
-        logger: logger,
-      );
-    });
-
-    // Load Balancer
-    instance.registerSingletonAsync<MeshLoadBalancer>(() async {
-      return MeshLoadBalancer(
-        optimizer: instance.get<MeshOptimizer>(),
-        logger: logger,
-      );
-    });
-
-    // Security
-    instance.registerSingletonAsync<EncryptionService>(() async {
-      final service = EncryptionService(logger: logger);
-      await service.initialize();
-      return service;
-    });
-
-    // Wait for all async registrations
-    await instance.allReady();
+      _isInitialized = true;
+      _logger.info('ServiceLocator initialized successfully');
+    } catch (e, stackTrace) {
+      _logger.error('Failed to initialize ServiceLocator', e, stackTrace);
+      rethrow;
+    }
   }
 
-  static Future<void> reset() async {
-    await instance.reset();
+  @override
+  Future<void> dispose() async {
+    try {
+      for (final service in _services.values) {
+        await service.dispose();
+      }
+      _services.clear();
+      _isInitialized = false;
+      _logger.info('ServiceLocator disposed successfully');
+    } catch (e, stackTrace) {
+      _logger.error('Failed to dispose ServiceLocator', e, stackTrace);
+      rethrow;
+    }
   }
 
-  static Future<void> dispose() async {
-    await instance.get<CleanupService>().dispose();
-    await instance.reset();
+  @override
+  void register<T extends IService>(T instance) {
+    _services[T] = instance;
+    _logger.debug('Registered service: ${T.toString()}');
+  }
+
+  @override
+  T get<T extends IService>() {
+    final service = _services[T];
+    if (service == null) {
+      final error = Exception('Service not found: ${T.toString()}');
+      _logger.error('Failed to get service', error);
+      throw error;
+    }
+    return service as T;
+  }
+
+  @override
+  bool isRegistered<T extends IService>() {
+    return _services.containsKey(T);
   }
 }

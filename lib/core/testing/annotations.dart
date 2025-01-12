@@ -1,3 +1,0 @@
-class isTest {
-  const isTest();
-}

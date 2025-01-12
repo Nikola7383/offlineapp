@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import '../widgets/offline_indicator.dart';
 import '../widgets/message_list.dart';
 import '../widgets/compose_message.dart';
+import '../widgets/sync_status_badge.dart';
 import '../../core/services/service_helper.dart';
 import '../screens/settings_screen.dart';
+import '../theme/app_theme.dart';
+import '../../core/models/room.dart';
+import '../widgets/chat_list_item.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,19 +17,44 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Mock data za testiranje
+  final List<Room> rooms = [
+    Room(
+      id: '1',
+      number: 1,
+      lastMessage: 'Poslednja poruka...',
+      lastActivity: DateTime.now(),
+    ),
+    Room(
+      id: '2',
+      number: 2,
+      lastMessage: 'Test poruka...',
+      lastActivity: DateTime.now(),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: const Text('Secure Event App'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: Text(
+          'Glasnik',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.sync),
+            icon: Icon(Icons.sync, color: AppTheme.textPrimary),
             onPressed: () => Services.sync.sync(),
           ),
           const SyncStatusBadge(),
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: Icon(Icons.settings, color: AppTheme.textPrimary),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -41,7 +70,17 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Stack(
               children: [
-                const MessageList(),
+                ListView.builder(
+                  itemCount: rooms.length,
+                  itemBuilder: (context, index) {
+                    final room = rooms[index];
+                    return ChatListItem(
+                      name: 'Glasnik #${room.number}',
+                      lastMessage: room.lastMessage,
+                      icon: Icons.forum,
+                    );
+                  },
+                ),
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -57,6 +96,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primary,
+        child: const Icon(Icons.add),
+        onPressed: () {},
       ),
     );
   }
@@ -94,63 +138,5 @@ class _HomeScreenState extends State<HomeScreen> {
       yield Services.sync.status;
       await Future.delayed(const Duration(milliseconds: 500));
     }
-  }
-}
-
-  // Mock data za testiranje
-  final List<Room> rooms = [
-    Room(
-      id: '1',
-      number: 1,
-      lastMessage: 'Poslednja poruka...',
-      lastActivity: DateTime.now(),
-    ),
-    Room(
-      id: '2',
-      number: 2,
-      lastMessage: 'Test poruka...',
-      lastActivity: DateTime.now(),
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    print('HomeScreen building');
-    return Scaffold(
-      backgroundColor: AppTheme.surface,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        title: Text(
-          'Glasnik',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings, color: AppTheme.textPrimary),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: ListView.builder(
-        itemCount: rooms.length,
-        itemBuilder: (context, index) {
-          final room = rooms[index];
-          return ChatListItem(
-            name: 'Glasnik #${room.number}',
-            lastMessage: room.lastMessage,
-            icon: Icons.forum,
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.primary,
-        child: const Icon(Icons.add),
-        onPressed: () {},
-      ),
-    );
   }
 }

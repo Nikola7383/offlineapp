@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class MemoryMonitor extends InjectableService {
   static const MEMORY_CHECK_INTERVAL = Duration(minutes: 5);

@@ -1,14 +1,23 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:your_app/core/security/encryption_service.dart';
-import 'package:your_app/core/mesh/mesh_network.dart';
+import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
+import '../../lib/core/security/encryption_service.dart';
+import '../../lib/core/mesh/mesh_network.dart';
+import '../../lib/core/interfaces/logger_service.dart';
+import '../../lib/core/models/message.dart';
+import '../../lib/core/exceptions/security_exception.dart';
 
+@GenerateMocks([ILoggerService])
 void main() {
   late EncryptionService encryption;
   late MeshNetwork mesh;
+  late MockILoggerService mockLogger;
 
   setUp(() {
-    encryption = EncryptionService(logger: LoggerService());
-    mesh = MeshNetwork(logger: LoggerService());
+    mockLogger = MockILoggerService();
+    encryption = EncryptionService(logger: mockLogger);
+    mesh = MeshNetwork(logger: mockLogger);
   });
 
   group('Security Attack Simulations', () {
@@ -35,8 +44,7 @@ void main() {
       // Pokušaj izmene enkriptovane poruke
       final tampered = message.copyWith(
         content: base64Encode(
-          base64Decode(message.content)...[10] ^= 0xFF
-        )
+            (base64Decode(message.content) as List<int>)..[10] ^= 0xFF),
       );
 
       expect(
@@ -48,7 +56,7 @@ void main() {
     test('Should prevent man-in-the-middle attacks', () async {
       // Simulacija MITM napada
       await _simulateMITMAttack(mesh, encryption);
-      
+
       // Provera da li su sve poruke legitimne
       final messages = await mesh.getRecentMessages();
       for (final msg in messages) {
@@ -56,4 +64,9 @@ void main() {
       }
     });
   });
-} 
+}
+
+Future<void> _simulateMITMAttack(
+    MeshNetwork mesh, EncryptionService encryption) async {
+  // TODO: Implementirati simulaciju MITM napada
+}

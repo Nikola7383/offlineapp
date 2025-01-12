@@ -1,5 +1,12 @@
+import 'dart:math';
+import '../di/di_imports.dart';
+import '../services/injectable_service.dart';
+import '../services/logger_service.dart';
+
 @injectable
 class NetworkResilience extends InjectableService {
+  NetworkResilience(LoggerService logger) : super(logger);
+
   static const MAX_RETRIES = 3;
   static const BASE_DELAY = Duration(seconds: 1);
 
@@ -27,9 +34,7 @@ class NetworkResilience extends InjectableService {
 
         final delay = _backoffStrategy.getDelay(attempts);
         logger.warning(
-          'Operation failed, retrying in ${delay.inSeconds}s',
-          e,
-        );
+            'Operation failed, retrying in ${delay.inSeconds}s (Error: $e)');
 
         await Future.delayed(delay);
       }

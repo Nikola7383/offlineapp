@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class KeyRotationManager extends InjectableService implements Disposable {
   static const ROTATION_INTERVAL = Duration(days: 1);

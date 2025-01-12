@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class MeshRouter extends InjectableService {
   final Map<String, RoutingInfo> _routingTable = {};

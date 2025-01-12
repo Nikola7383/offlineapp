@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 @injectable
 class SessionManager extends InjectableService implements Disposable {
   final _activeSessions = <String, Session>{};

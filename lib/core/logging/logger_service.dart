@@ -1,25 +1,53 @@
-abstract class LoggerService {
-  Future<void> info(String message);
-  Future<void> warning(String message);
-  Future<void> error(String message, [dynamic error]);
-}
+import 'package:injectable/injectable.dart';
+import 'package:logger/logger.dart';
+import '../interfaces/base_service.dart';
 
-class LoggerServiceImpl implements LoggerService {
+/// Servis za logovanje
+@LazySingleton()
+class LoggerService implements IService {
+  final _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 5,
+      lineLength: 50,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
+
   @override
-  Future<void> info(String message) async {
-    print('INFO: $message');
+  Future<void> initialize() async {
+    // Nema potrebe za inicijalizacijom
   }
 
   @override
-  Future<void> warning(String message) async {
-    print('WARNING: $message');
+  Future<void> dispose() async {
+    // Nema potrebe za čišćenjem resursa
   }
 
-  @override
-  Future<void> error(String message, [dynamic error]) async {
-    print('ERROR: $message');
-    if (error != null) {
-      print('Error details: $error');
-    }
+  /// Loguje debug poruku
+  void debug(String message, [dynamic error]) {
+    _logger.d(message);
+  }
+
+  /// Loguje info poruku
+  void info(String message, [dynamic error]) {
+    _logger.i(message);
+  }
+
+  /// Loguje warning poruku
+  void warning(String message, [dynamic error]) {
+    _logger.w(message);
+  }
+
+  /// Loguje error poruku
+  void error(String message, [dynamic error]) {
+    _logger.e(message);
+  }
+
+  /// Loguje fatal error poruku
+  void fatal(String message, [dynamic error]) {
+    _logger.e('FATAL: $message');
   }
 }

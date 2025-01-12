@@ -2,6 +2,25 @@ import 'dart:isolate';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:secure_event_app/mesh/process/network_monitor.dart';
 
+abstract class NetworkStatsCollector {
+  Future<List<NetworkInterfaceStats>> collectStats();
+}
+
+class MockNetworkStatsCollector implements NetworkStatsCollector {
+  final List<NetworkInterfaceStats> mockStats;
+  bool throwError = false;
+
+  MockNetworkStatsCollector(this.mockStats);
+
+  @override
+  Future<List<NetworkInterfaceStats>> collectStats() async {
+    if (throwError) {
+      throw Exception('Test error');
+    }
+    return mockStats;
+  }
+}
+
 void main() {
   group('NetworkMonitorConfig', () {
     test('should create instance with default values', () {
@@ -106,7 +125,7 @@ void main() {
     setUp(() {
       receivePort = ReceivePort();
       final now = DateTime.now();
-      
+
       mockStats = [
         NetworkInterfaceStats(
           name: 'eth0',
@@ -129,7 +148,7 @@ void main() {
           timestamp: now,
         ),
       ];
-      
+
       monitor = NetworkMonitor(
         receivePort.sendPort,
         NetworkMonitorConfig().toJson(),
@@ -145,11 +164,11 @@ void main() {
     test('should start and stop monitoring', () async {
       expect(monitor.isRunning, isFalse);
       expect(monitor.sampleTimer, isNull);
-      
+
       monitor.start();
       expect(monitor.isRunning, isTrue);
       expect(monitor.sampleTimer, isNotNull);
-      
+
       monitor.stop();
       expect(monitor.isRunning, isFalse);
       expect(monitor.sampleTimer, isNull);
@@ -158,14 +177,14 @@ void main() {
     test('should not start monitoring if already running', () {
       monitor.start();
       final timer = monitor.sampleTimer;
-      
+
       monitor.start();
       expect(monitor.sampleTimer, equals(timer));
     });
 
     test('should collect network stats', () async {
       final stats = await monitor.collectNetworkStats();
-      
+
       expect(stats, equals(mockStats));
       for (final stat in stats) {
         expect(stat, isA<NetworkInterfaceStats>());
@@ -184,13 +203,13 @@ void main() {
       final specificConfig = NetworkMonitorConfig(
         interfacesToMonitor: ['eth0'],
       );
-      
+
       final specificMonitor = NetworkMonitor(
         receivePort.sendPort,
         specificConfig.toJson(),
         statsCollector: MockNetworkStatsCollector(mockStats),
       );
-      
+
       final stats = await specificMonitor.collectNetworkStats();
       expect(stats.length, equals(1));
       expect(stats.first.name, equals('eth0'));
@@ -203,9 +222,9 @@ void main() {
           messages.add(message);
         }
       });
-      
+
       await monitor.collectAndSendStats();
-      
+
       expect(messages.length, equals(1));
       expect(messages.first['type'], equals('stats'));
       expect(messages.first['data'], isA<List>());
@@ -213,37 +232,26 @@ void main() {
     });
 
     test('should handle errors gracefully', () async {
-      final errorCollector = MockNetworkStatsCollector([])..throwError = true;
+      final errorCollector = MockNetworkStatsCollector(mockStats)
+        ..throwError = true;
       final errorMonitor = NetworkMonitor(
         receivePort.sendPort,
         NetworkMonitorConfig().toJson(),
         statsCollector: errorCollector,
       );
-      
+
       final messages = <Map<String, dynamic>>[];
       receivePort.listen((message) {
         if (message is Map<String, dynamic>) {
           messages.add(message);
         }
       });
-      
+
       await errorMonitor.collectAndSendStats();
-      
+
       expect(messages.length, equals(1));
       expect(messages.first['type'], equals('error'));
       expect(messages.first['message'], contains('Test error'));
     });
   });
-}
-
-extension on MockNetworkStatsCollector {
-  bool throwError = false;
-
-  @override
-  Future<List<NetworkInterfaceStats>> collectStats() async {
-    if (throwError) {
-      throw Exception('Test error');
-    }
-    return mockStats;
-  }
 }

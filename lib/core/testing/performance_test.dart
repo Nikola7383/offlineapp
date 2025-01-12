@@ -1,4 +1,8 @@
-@isTest
+import 'package:injectable/injectable.dart';
+import 'dart:math' as math;
+import '../services/logger_service.dart';
+
+@injectable
 class PerformanceTest {
   final LoggerService _logger;
   final Stopwatch _stopwatch = Stopwatch();
@@ -31,13 +35,13 @@ class PerformanceTest {
     for (final entry in _measurements.entries) {
       final durations = entry.value;
       final avg = durations.reduce((a, b) => a + b) ~/ durations.length;
-      final max = durations.reduce(max);
-      final min = durations.reduce(min);
+      final maxDuration = durations.reduce((a, b) => a > b ? a : b);
+      final minDuration = durations.reduce((a, b) => a < b ? a : b);
 
       report.writeln('Operation: ${entry.key}');
       report.writeln('  Average: ${avg.inMilliseconds}ms');
-      report.writeln('  Max: ${max.inMilliseconds}ms');
-      report.writeln('  Min: ${min.inMilliseconds}ms');
+      report.writeln('  Max: ${maxDuration.inMilliseconds}ms');
+      report.writeln('  Min: ${minDuration.inMilliseconds}ms');
       report.writeln('  Samples: ${durations.length}');
       report.writeln();
     }
